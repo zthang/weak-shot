@@ -1,6 +1,5 @@
 class Config():
     def __init__(self):
-        self.is_train = True                   # 是否是在训练
         self.is_DiGraph = False                # 是否是有向图
         self.times = 1                         # 实验次数
         self.epoch_num = 500                   # 每次实验进行的轮数

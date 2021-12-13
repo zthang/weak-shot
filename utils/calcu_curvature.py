@@ -5,9 +5,9 @@ import pickle
 import os
 import time
 
-def make_curvature_file(prefix, type, weight_threshold=0.77, method=0):
-    lines = open(f"../graph/{type}_graph_mean.txt").readlines()
-    dir_path = f"../{prefix}_{weight_threshold}"
+def make_curvature_file(datset_str, prefix, type, weight_threshold=0.77, method=0):
+    lines = open(f"../graph/{datset_str}/{type}_graph_mean.txt").readlines()
+    dir_path = f"../curvature/{datset_str}/{prefix}_{weight_threshold}"
 
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -36,15 +36,36 @@ def make_curvature_file(prefix, type, weight_threshold=0.77, method=0):
     current_time = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
     print(f"{current_time} done.")
 
-# make_curvature_file("curvature/cos_mean", "base_train")
-# lines = open("curvature/cos_mean_0.77/base_train_subgraph.txt", "r").readlines()
-lines = open("../curvature/cos_mean_0.77/graph_base_train.edge_list_OllivierRicci.txt", "r").readlines()
-f = open("../curvature/cos_mean_0.77/graph_base_train.edge_list_OllivierRicci_10class.txt", "w")
+# make_curvature_file("CUB", "cos_mean", "base_test")
+# lines = open("../graph/CUB/base_train_graph_mean.txt", "r").readlines()
+# f = open("../graph/CUB/base_train_graph_mean_10class.txt", "w")
+
+lines = open("../curvature/CUB/cos_mean_0.77/graph_base_train.edge_list_OllivierRicci.txt", "r").readlines()
+f = open("../curvature/CUB/cos_mean_0.77/graph_base_train.edge_list_OllivierRicci_10class.txt", "w")
+# valid_list = []
+# def calcu_data(value):
+#     if value >= 183 and value < 303:
+#         value -= 123
+#     elif value >= 459 and value < 490:
+#         value -= 279
+#     elif value >= 567 and value < 657:
+#         value -= 357
+#     return value
+# for i in range(60):
+#     valid_list.append(i)
+# for i in range(183, 303):
+#     valid_list.append(i)
+# for i in range(459, 489):
+#     valid_list.append(i)
+# for i in range(567, 657):
+#     valid_list.append(i)
 for line in lines:
     data = line.strip().split(" ")
     data[0] = int(data[0])
     data[1] = int(data[1])
     data[2] = float(data[2])
+#     # if(data[0] in valid_list and data[1] in valid_list):
+#     #     f.write(f"{calcu_data(data[0])} {calcu_data(data[1])} {data[2]}\n")
     if(data[0] < 300 and data[1] < 300):
         f.write(f"{data[0]} {data[1]} {data[2]}\n")
 print(1)

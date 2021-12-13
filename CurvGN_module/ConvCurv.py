@@ -37,7 +37,7 @@ def num(strings):
     except ValueError:
         return float(strings)
 
-def call(data,name,num_features,num_classes):
+def call(data, name, num_features, num_classes, config):
     filename='data/curvature/graph_'+name+'.edge_list'
     f=open(filename)
     cur_list=list(f)
