@@ -5,7 +5,7 @@ import torch_geometric.transforms as T
 import numpy as np
 import pickle
 from torch_geometric.utils import add_self_loops, remove_self_loops,degree,softmax
-from curvGN import curvGN
+from CurvGN_module.curvGN import curvGN
 
 def minmaxscaler(x):
     for i in range(len(x)):

@@ -5,7 +5,7 @@ from torch_geometric.data import Data
 import random
 import math
 import numpy as np
-from config import CurvGN_config
+from config.CurvGN_config import Config
 from CurvGN_module import ConvCurv
 from data_preprocess.prepare_GCN_data import *
 #load the neural networks
@@ -58,11 +58,10 @@ def test(train_mask,val_mask,test_mask):
     # print(accs)
     return accs
 
-config = CurvGN_config()
+config = Config()
 print(config.__dict__)
 #load dataset
 times = range(config.times)  #Todo:实验次数
-is_train = config.is_train
 epoch_num = config.epoch_num
 wait_total = config.patience
 pipelines = [config.method]

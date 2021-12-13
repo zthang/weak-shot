@@ -2,7 +2,7 @@ from torch_geometric.data import Data
 from itertools import repeat
 import torch
 import pickle
-from preprocess import get_dataset, get_edge_weight_curvature
+from data_preprocess.preprocess import get_dataset, get_edge_weight_curvature
 
 def edge_index_from_dict(graph_dict):
     row, col = [], []
@@ -20,7 +20,7 @@ def index_to_mask(index, size):
 
 def get_GCN_data(dataset_str):
     if dataset_str == "CUB":
-        x_train, x_test, y_train, y_test = get_dataset("../image_embeddings/CUB/novel_train_pretrained")
+        x_train, x_test, y_train, y_test = get_dataset("image_embeddings/CUB/novel_train_pretrained")
         edge_index_train, edge_weight_train, edge_curvature_train = get_edge_weight_curvature("CUB", weight_file_name="cos_mean_0.77/base_train_subgraph", curvature_file_name="cos_mean_0.77/graph_base_train.edge_list_OllivierRicci")
         edge_index_test, edge_weight_test, edge_curvature_test = get_edge_weight_curvature("CUB", weight_file_name="cos_mean_0.77/base_test_subgraph", curvature_file_name="cos_mean_0.77/graph_base_test.edge_list_OllivierRicci")
 

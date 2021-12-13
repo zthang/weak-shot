@@ -62,7 +62,7 @@ def get_image_label(filename):
     return torch.tensor(ground_truth)
 
 def get_edge_weight_curvature(dataset_str, weight_file_name, curvature_file_name):
-    f = open(f"../curvature/{dataset_str}/{curvature_file_name}.txt", "r")
+    f = open(f"curvature/{dataset_str}/{curvature_file_name}.txt", "r")
     cur_list = list(f)
     ricci_cur = [[] for i in range(2*len(cur_list))]
     for i in range(len(cur_list)):
@@ -74,7 +74,7 @@ def get_edge_weight_curvature(dataset_str, weight_file_name, curvature_file_name
     eg_index = torch.stack((torch.tensor(eg_index0), torch.tensor(eg_index1)), dim=0)
     edge_curvature = [i[2] for i in ricci_cur]
 
-    f = open(f"../curvature/{dataset_str}/{weight_file_name}.txt", "r")
+    f = open(f"curvature/{dataset_str}/{weight_file_name}.txt", "r")
     weight_list = list(f)
     weight = [[] for i in range(2*len(weight_list))]
     for i in range(len(weight_list)):
