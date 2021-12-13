@@ -78,23 +78,23 @@ def main():
 
     # simnet = GANSimilarityNet(args).cuda()
 
-    # save_image_embedding(simnet, "image_embeddings/base_pretrained/", "base_train", base_train_loader)
-    # save_image_embedding(simnet, "image_embeddings/base_pretrained/", "base_test", base_test_loader)
+    # save_image_embedding(simnet, "image_embeddings/CUB/base_pretrained/", "base_train", base_train_loader)
+    # save_image_embedding(simnet, "image_embeddings/CUB/base_pretrained/", "base_test", base_test_loader)
 
 
     # base_train_image, base_test_image, novel_train_image, novel_test_image, \
-    # base_train_label, base_test_label, novel_train_label, novel_test_label = get_dataset("image_embeddings/")
-    base_train_image, base_test_image, base_train_label, base_test_label = get_dataset("image_embeddings/base_pretrained/")
+    # base_train_label, base_test_label, novel_train_label, novel_test_label = get_dataset("image_embeddings/CUB/")
+    base_train_image, base_test_image, base_train_label, base_test_label = get_dataset("image_embeddings/CUB/base_pretrained/")
 
 
     base_train_image = base_train_image.to("cpu")
-    make_graph_file("base_train_graph_mean", base_train_image)
+    make_graph_file("CUB/base_train_graph_mean", base_train_image)
     base_test_image = base_test_image.to("cpu")
-    make_graph_file("base_test_graph_mean", base_test_image)
+    make_graph_file("CUB/base_test_graph_mean", base_test_image)
     # novel_train_image = novel_train_image.to("cpu")
-    # make_graph_file("novel_train_graph_mean", novel_train_image)
+    # make_graph_file("CUB/novel_train_graph_mean", novel_train_image)
     # novel_test_image = novel_test_image.to("cpu")
-    # make_graph_file("novel_test_graph_mean", novel_test_image)
+    # make_graph_file("CUB/novel_test_graph_mean", novel_test_image)
 
 
 if __name__ == '__main__':
