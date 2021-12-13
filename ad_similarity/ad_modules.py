@@ -461,12 +461,12 @@ class SequentialBalancedSampler2(Sampler):
         for dataset_idx, (p, c) in enumerate(dataset.image_list):
             image_dict[c].append(dataset_idx)
 
-        C = len(image_dict)
+        category_num = len(image_dict)
         self.list = []
 
         for iter in range(total_iter):
             batch = []
-            selected_class_idx = np.random.choice(C, class_num_per_batch, replace=False)
+            selected_class_idx = np.random.choice(category_num, class_num_per_batch, replace=False)
             for idx in selected_class_idx:
                 category_images = image_dict[idx]
                 L = len(category_images)

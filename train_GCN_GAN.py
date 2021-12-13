@@ -1,10 +1,11 @@
+import pickle
 import sys
 import warnings
 import os
 
 sys.path.append(".")
 warnings.filterwarnings("ignore")
-os.environ['CUDA_VISIBLE_DEVICES']='0,1,2,3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,2,3'
 
 import datetime
 import numpy as np
@@ -22,6 +23,7 @@ from utils.parser import get_base_parser, add_base_train
 from utils.project_kits import init_log, log, set_seeds, occupy
 from utils.vis import vis_acc
 from ad_similarity.ad_modules import *
+from data_preprocess.preprocess import merge_image_embedding, get_image_embedding, make_graph_file, get_dataset
 
 
 def add_similarity_train(parser):
@@ -55,11 +57,12 @@ def main():
     args.beta = 0.
     args.lr = 5e-3
     args.domain_lr = 5e-3
-    args.batch_size = 50
+    args.batch_size = 5000
     args.lr_interval = 25
-    args.num_epoch = 50
+    args.num_epoch = 300
     args.head_type = 4
     args.batch_class_num_B = 2
+    args.similarity_pretrained = "saves/naive_CleanBase_CUB_lr0.005_b192_wd0.0001_12121308/naive_CleanBase_CUB_lr0.005_b192_wd0.0001_12121308_0.4914.pth"
 
     args.exp_name += f'GANSimilarity_{args.exp_name}_t{args.target_domain}_beta{args.beta}_{args.source_set}2{args.target_set}_{os.path.basename(args.data_path)}' \
                      f'_lr{args.lr}_b{args.batch_size}_h{args.head_type}' \
@@ -68,46 +71,42 @@ def main():
 
     init_log(args.exp_name)
     log(args)
-    occupy(args.occupy)
+    occupy(args.occupy)   # 判断显存是否充足
     set_seeds(args.seed)
 
     data_helper = get_data_helper(args)
     log(data_helper)
 
-    if args.source_set == 'clean_base':
-        A_loader = data_helper.get_clean_base_loader()
-    elif args.source_set == 'noisy_base':
-        A_loader = data_helper.get_noisy_base_loader()
-    elif args.source_set == 'noisy_novel':
-        A_loader = data_helper.get_noisy_novel_loader()
-    elif args.source_set == 'clean_novel':
-        A_loader = data_helper.get_clean_novel_loader()
-    else:
-        raise NotImplementedError
+    base_train_loader = data_helper.get_clean_base_loader()   # base training set共计150类 每类30张图片
+    novel_train_loader = data_helper.get_noisy_novel_loader()  # novel web images 共计50类 每类1000张图片
+    for batch_i, image_info in tqdm(enumerate(base_train_loader)):
+        images, categories, file_names = image_info
+        print(1)
 
-    if args.target_set == 'noisy_novel':
-        base_test_loader = data_helper.get_base_test_loader()
-        novel_test_loader = data_helper.get_novel_test_loader()
-    else:
-        raise NotImplementedError
-
-    if args.target_domain == 'novel_train':
-        B_loader = data_helper.get_noisy_novel_loader()
-    elif args.target_domain == 'novel_test':
-        B_loader = novel_test_loader
-    else:
-        raise NotImplementedError
-
-    base_similarity_test_loader = get_similarity_test_loader2(args, base_test_loader)
-    novel_similarity_test_loader = get_similarity_test_loader2(args, novel_test_loader)
+    base_test_loader = data_helper.get_base_test_loader()     # base test set 150类 4326张图片
+    novel_test_loader = data_helper.get_novel_test_loader()   # novel test set 50类 1468张图片
 
     simnet = GANSimilarityNet(args).cuda()
+
+    # save_image_embedding(simnet, "image_embeddings/1212/", "base_train", base_train_loader)
+    # save_image_embedding(simnet, "image_embeddings/1212/", "base_test", base_test_loader)
+
+
+    # base_train_image, base_test_image, novel_train_image, novel_test_image, \
+    # base_train_label, base_test_label, novel_train_label, novel_test_label = get_dataset()
+    base_train_image, base_test_image, base_train_label, base_test_label = get_dataset("image_embeddings/base_pretrained/")
+
+
+
+    base_similarity_test_loader = get_similarity_test_loader2(args, base_test_loader)  # 迭代10轮，每轮随机挑10个类别，每个类别随机选10张图片
+    novel_similarity_test_loader = get_similarity_test_loader2(args, novel_test_loader) # 迭代10轮，每轮随机挑10个类别，每个类别随机选10张图片
+
     domain_classifier = nn.DataParallel(DomainClassifier(args, simnet.diff_dim)).cuda()
 
     train_acc, test_acc, val_acc, val0_acc, domain = [], [], [], [], []
 
     for epoch in range(args.num_epoch):
-        train_meter, domain_meter, cls_loss_avg = train(args, epoch, simnet, domain_classifier, A_loader, B_loader)
+        train_meter, domain_meter, cls_loss_avg = train(args, epoch, simnet, domain_classifier, source_data_loader, target_data_loader)
 
         val_meter = evaluation(args, epoch, simnet, base_similarity_test_loader)
         test_meter = evaluation(args, epoch, simnet, novel_similarity_test_loader)
@@ -148,9 +147,9 @@ def main():
     return
 
 
-def train(args, epoch, simnet, domain_classifier, A_loader, B_loader):
-    A_pairs_data_loader = get_train_loader_(args, A_loader, B_loader, args.batch_class_num)
-    B_pairs_data_loader = get_train_loader_(args, B_loader, B_loader, args.batch_class_num_B)
+def train(args, epoch, simnet, domain_classifier, source_data_loader, target_data_loader):
+    source_pairs_data_loader = get_train_loader_(args, source_data_loader, target_data_loader, args.batch_class_num)
+    target_pairs_data_loader = get_train_loader_(args, target_data_loader, target_data_loader, args.batch_class_num_B)
 
     lr = args.lr * args.lr_decay ** (epoch // args.lr_interval)
     domain_lr = args.domain_lr * args.lr_decay ** (epoch // args.lr_interval)

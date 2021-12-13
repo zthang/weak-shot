@@ -37,19 +37,19 @@ class DataHelper:
 
     def get_novel_test_loader(self, shuffle=True):
         data_set = self._get_novel_test_set()
-        return Loader(data_set, batch_size=self.batch_size, shuffle=shuffle, num_workers=self.num_workers)
+        return Loader(data_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
     def get_base_test_loader(self, shuffle=True):
         data_set = self._get_base_test_set()
-        return Loader(data_set, batch_size=self.batch_size, shuffle=shuffle, num_workers=self.num_workers)
+        return Loader(data_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
     def get_clean_base_loader(self):
         data_set = self._get_clean_base_set()
-        return Loader(data_set, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
+        return Loader(data_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
     def get_noisy_novel_loader(self):
         data_set = self._get_noisy_novel_set()
-        return Loader(data_set, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
+        return Loader(data_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
     def get_clean_novel_loader(self):
         data_set = self._get_clean_novel_set()

@@ -4,7 +4,7 @@ import warnings
 sys.path.append(".")
 warnings.filterwarnings("ignore")
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='0,2'
+os.environ['CUDA_VISIBLE_DEVICES']='1,2,3'
 import datetime
 import numpy as np
 import torch
@@ -34,11 +34,11 @@ def main():
     parser = add_naive_train(parser)
     args = parser.parse_args()
 
-    args.lr = 1e-4
-    args.batch_size = 64
-    args.num_epoch = 30
+    args.lr = 5e-3
+    args.batch_size = 192
+    args.num_epoch = 300
     args.data_path = "workspace/dataset/CUB"
-    args.exp_type = "NoisyNovel"
+    args.exp_type = "CleanBase"
 
     args.exp_name += f'naive_{args.exp_type}_{os.path.basename(args.data_path)}_lr{args.lr}_b{args.batch_size}_wd{args.wd}_' \
                      f'{datetime.datetime.now().strftime("%m%d%H%M")}'

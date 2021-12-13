@@ -87,7 +87,6 @@ class SourceTrainSet(DataSet):
 class SourceTestSet(DataSet):
     def __init__(self, root_path, categories, transform=None):
         super(SourceTestSet, self).__init__(root_path, categories, transform)
-
         train_ids = []
         for line in open(os.path.join(root_path, 'CUB_200_2011', 'train_test_split.txt')).readlines():
             img_id, is_train = line.strip().split(' ')
