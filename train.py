@@ -38,7 +38,7 @@ def main():
     args.batch_size = 192
     args.num_epoch = 300
     args.data_path = "workspace/dataset/CUB"
-    args.exp_type = "CleanBase"
+    args.exp_type = "NoisyNovel"
 
     args.exp_name += f'naive_{args.exp_type}_{os.path.basename(args.data_path)}_lr{args.lr}_b{args.batch_size}_wd{args.wd}_' \
                      f'{datetime.datetime.now().strftime("%m%d%H%M")}'

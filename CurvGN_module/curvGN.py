@@ -6,18 +6,17 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax,degree
 
 class  curvGN(MessagePassing):
-    def __init__(self, in_channels, out_channels,curv_n,w_mul,bias=True):
-        super(curvGN, self).__init__(aggr='add') # "Add" aggregation.
-        self.w_mul = w_mul
-        self.lin=Linear(in_channels,out_channels)
-        widths=[1,out_channels]
-        self.w_mlp_out=create_wmlp(widths,out_channels,1)
-    def forward(self, x, edge_index):
+    def __init__(self, in_channels, out_channels, bias=True):
+        super(curvGN, self).__init__(aggr='add')  # "Add" aggregation.
+        self.lin = Linear(in_channels, out_channels)
+        widths = [2, out_channels]
+        self.w_mlp_out = create_wmlp(widths, out_channels, 1)
+    def forward(self, x, edge_index, w_mul):
         x = self.lin(x)
-        out_weight=self.w_mlp_out(self.w_mul)
-        out_weight=softmax(out_weight,edge_index[0])
-        return self.propagate(x=x,edge_index=edge_index,out_weight=out_weight)
-    def message(self,x_j,edge_index,out_weight):
+        out_weight = self.w_mlp_out(w_mul)
+        out_weight = softmax(out_weight, edge_index[1])
+        return self.propagate(x=x, edge_index=edge_index, out_weight=out_weight)
+    def message(self, x_j, edge_index, out_weight):
         return out_weight*x_j
     def update(self, aggr_out):
         # aggr_out has shape [N, out_channels]
@@ -25,11 +24,11 @@ class  curvGN(MessagePassing):
         return aggr_out
 
 def create_wmlp(widths,nfeato,lbias):
-    mlp_modules=[]
+    mlp_modules = []
     for k in range(len(widths)-1):
-        mlp_modules.append(Linear(widths[k],widths[k+1],bias=False))
-        mlp_modules.append(LeakyReLU(0.2,True))
-    mlp_modules.append(Linear(widths[len(widths)-1],nfeato,bias=lbias))
+        mlp_modules.append(Linear(widths[k], widths[k+1], bias=False))
+        mlp_modules.append(LeakyReLU(0.2, True))
+    mlp_modules.append(Linear(widths[len(widths)-1], nfeato, bias=lbias))
     return seq(*mlp_modules)
 
 
