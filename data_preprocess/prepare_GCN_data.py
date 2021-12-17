@@ -3,6 +3,7 @@ from itertools import repeat
 import torch
 import pickle
 from data_preprocess.preprocess import get_dataset, get_edge_weight_curvature
+from torch_scatter import scatter
 
 def edge_index_from_dict(graph_dict):
     row, col = [], []
@@ -20,11 +21,14 @@ def index_to_mask(index, size):
 
 def get_GCN_data(dataset_str):
     if dataset_str == "CUB":
-        x_train, x_test, y_train, y_test = get_dataset("image_embeddings/CUB/novel_train_pretrained")
-        edge_index_train, edge_weight_train, edge_curvature_train = get_edge_weight_curvature("CUB", weight_file_name="cos_mean_0.77/base_train_subgraph", curvature_file_name="cos_mean_0.77/graph_base_train.edge_list_OllivierRicci")
-        edge_index_test, edge_weight_test, edge_curvature_test = get_edge_weight_curvature("CUB", weight_file_name="cos_mean_0.77/base_test_subgraph", curvature_file_name="cos_mean_0.77/graph_base_test.edge_list_OllivierRicci")
-        pos_neg_edge_train = pickle.load(open(f"curvature/CUB/cos_mean_0.77/base_train_pos_neg_edge.pkl", "rb"))
-        pos_neg_edge_test = pickle.load(open(f"curvature/CUB/cos_mean_0.77/base_test_pos_neg_edge.pkl", "rb"))
+        x_train, x_test, y_train, y_test = get_dataset("image_embeddings/CUB/ori_pretrained")
+        edge_index_train, edge_weight_train, edge_curvature_train = get_edge_weight_curvature("CUB", weight_file_name="cos_mean_0.7/base_train_subgraph", curvature_file_name="cos_mean_0.7/graph_base_train.edge_list_OllivierRicci")
+        edge_index_test, edge_weight_test, edge_curvature_test = get_edge_weight_curvature("CUB", weight_file_name="cos_mean_0.7/base_test_subgraph", curvature_file_name="cos_mean_0.7/graph_base_test.edge_list_OllivierRicci")
+        pos_neg_edge_train = pickle.load(open(f"curvature/CUB/cos_mean_0.7/base_train_pos_neg_edge.pkl", "rb"))
+        pos_neg_edge_test = pickle.load(open(f"curvature/CUB/cos_mean_0.7/base_test_pos_neg_edge.pkl", "rb"))
+
+        node_curvature_train = scatter(torch.tensor(edge_curvature_train), edge_index_train[0], dim=0, reduce="mean")
+        node_curvature_test = scatter(torch.tensor(edge_curvature_test), edge_index_test[0], dim=0, reduce="mean")
 
         pos_edge_train = []
         neg_edge_train = []
@@ -52,6 +56,7 @@ def get_GCN_data(dataset_str):
         test_mask = index_to_mask(test_index, size=y_test.size(0))
 
         train_data = Data(x=x_train, edge_index=edge_index_train, y=y_train)
+        train_data.node_curvature = node_curvature_train.view(-1, 1)
         train_data.train_mask = train_mask
         train_data.edge_weight = edge_weight_train
         train_data.edge_curvature = edge_curvature_train
@@ -62,6 +67,7 @@ def get_GCN_data(dataset_str):
         train_data.neg_edge_index_1 = neg_edge_train[:, 1]
 
         test_data = Data(x=x_test, edge_index=edge_index_test, y=y_test)
+        test_data.node_curvature = node_curvature_test.view(-1, 1)
         test_data.test_mask = test_mask
         test_data.edge_weight = edge_weight_test
         test_data.edge_curvature = edge_curvature_test

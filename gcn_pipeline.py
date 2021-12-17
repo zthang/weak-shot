@@ -1,5 +1,6 @@
 import os.path as osp
-
+import os
+os.environ['CUDA_VISIBLE_DEVICES']='2,3'
 import numpy
 import torch
 import torch.nn.functional as F
@@ -16,8 +17,8 @@ from sklearn import metrics
 from sklearn.metrics import roc_auc_score
 from imblearn.under_sampling import RandomUnderSampler
 
-τ = 1.
-def get_qkv_dataset(embeddings, pos_edge_index_0, pos_edge_index_1, neg_edge_index_0, neg_edge_index_1):
+τ = 0.5
+def get_qkv_dataset(embeddings, pos_edge_index_0, pos_edge_index_1, neg_edge_index_0, neg_edge_index_1, mode):
     embeddings = F.normalize(embeddings, dim=-1)
     q = torch.index_select(embeddings, 0, pos_edge_index_0)
     k = torch.index_select(embeddings, 0, pos_edge_index_1)
@@ -36,7 +37,18 @@ def get_qkv_dataset(embeddings, pos_edge_index_0, pos_edge_index_1, neg_edge_ind
     neg_pairs = torch.cat((v_0, v_1), dim=1)
     pairs = torch.cat((pos_pairs, neg_pairs), dim=0)
     pairs = pairs[index]
-    return q, k, v, pairs, torch.tensor(labels).cuda()
+
+    sim_pairs = None
+    if mode == 1:
+        index_0 = torch.cat((pos_edge_index_0, neg_edge_index_0), dim=0)
+        index_1 = torch.cat((pos_edge_index_1, neg_edge_index_1), dim=0)
+        index_0 = index_0[index]
+        index_1 = index_1[index]
+        sim_index_0 = torch.index_select(test_dataset.x, 0, index_0)
+        sim_index_1 = torch.index_select(test_dataset.x, 0, index_1)
+        sim_pairs = torch.cat((sim_index_0, sim_index_1), dim=1)
+    return q, k, v, pairs, torch.tensor(labels).cuda(), sim_pairs
+
 
 def loss_function(q, k, v, gamma=1e-10):
     # N是batch size
@@ -62,13 +74,13 @@ def train(train_mask):
     else:
         _, embeddings = model(train_dataset)
         # cross_entropy_loss = F.nll_loss(nll_loss[train_mask], data.y[train_mask])
-        q, k, v, pairs, labels = get_qkv_dataset(embeddings, train_dataset.pos_edge_index_0, train_dataset.pos_edge_index_1, train_dataset.neg_edge_index_0, train_dataset.neg_edge_index_1)
+        q, k, v, pairs, labels, _ = get_qkv_dataset(embeddings, train_dataset.pos_edge_index_0, train_dataset.pos_edge_index_1, train_dataset.neg_edge_index_0, train_dataset.neg_edge_index_1, 0)
         logits = model.fc(pairs)
         nll_loss = F.log_softmax(logits, dim=1)
         cross_entropy_loss = F.nll_loss(nll_loss, labels)
         _, predictions = torch.max(nll_loss.data, 1)
         info_nce_loss = loss_function(q, k, v)
-        loss = 0.1*info_nce_loss + cross_entropy_loss
+        loss = config.gamma1*info_nce_loss + cross_entropy_loss
         labels, predictions = labels.cpu().detach(), predictions.cpu().detach()
         acc = metrics.accuracy_score(labels, predictions)
     loss.backward()
@@ -81,19 +93,29 @@ def test(test_mask):
         logits, Reg1, Reg2 = model(data)
     else:
         _, embeddings = model(test_dataset)
-        q, k, v, pairs, labels = get_qkv_dataset(embeddings, test_dataset.pos_edge_index_0, test_dataset.pos_edge_index_1, test_dataset.neg_edge_index_0, test_dataset.neg_edge_index_1)
+        q, k, v, pairs, labels, sim_pairs = get_qkv_dataset(embeddings, test_dataset.pos_edge_index_0, test_dataset.pos_edge_index_1, test_dataset.neg_edge_index_0, test_dataset.neg_edge_index_1, 1)
+        AB_similarities, _ = simnet.similarity_head(sim_pairs)
+        _, sim_predictions = torch.max(AB_similarities, 1)
+
         logits = model.fc(pairs)
         nll_loss = F.log_softmax(logits, dim=1)
         cross_entropy_loss = F.nll_loss(nll_loss, labels)
         _, predictions = torch.max(nll_loss.data, 1)
         info_nce_loss = loss_function(q, k, v)
-        loss = 0.1*info_nce_loss + cross_entropy_loss
+        loss = config.gamma1*info_nce_loss + cross_entropy_loss
         labels, predictions = labels.cpu().detach(), predictions.cpu().detach()
         acc = metrics.accuracy_score(labels, predictions)
         precision = metrics.precision_score(labels, predictions)
         recall = metrics.recall_score(labels, predictions)
         f1 = metrics.f1_score(labels, predictions)
         auc = metrics.roc_auc_score(labels, predictions)
+
+        sim_acc = metrics.accuracy_score(labels, sim_predictions)
+        sim_precision = metrics.precision_score(labels, sim_predictions)
+        sim_recall = metrics.recall_score(labels, sim_predictions)
+        sim_f1 = metrics.f1_score(labels, sim_predictions)
+        sim_auc = metrics.roc_auc_score(labels, sim_predictions)
+        print(f"sim_acc : {sim_acc}, sim_precision : {sim_precision}, sim_recall : {sim_recall}, sim_f1 : {sim_f1}, sim_auc : {sim_auc}")
 # accs = []
     # for mask in [train_mask, val_mask, test_mask]:
     #     pred = logits[mask].max(1)[1]
@@ -113,7 +135,7 @@ wait_total = config.patience
 pipelines = [config.method]
 # d_names=['Cora','Citeseer','PubMed']
 d_names = config.d_names
-
+simnet = torch.load("saves/pretrained/CUB/h4f2_86.5.pth")
 train_dataset, test_dataset = get_GCN_data("CUB")
 print("loading data, done.")
 for time in times:

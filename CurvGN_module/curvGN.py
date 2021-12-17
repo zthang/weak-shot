@@ -14,7 +14,7 @@ class  curvGN(MessagePassing):
     def forward(self, x, edge_index, w_mul):
         x = self.lin(x)
         out_weight = self.w_mlp_out(w_mul)
-        out_weight = softmax(out_weight, edge_index[1])
+        out_weight = softmax(out_weight, edge_index[0])
         return self.propagate(x=x, edge_index=edge_index, out_weight=out_weight)
     def message(self, x_j, edge_index, out_weight):
         return out_weight*x_j

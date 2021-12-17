@@ -5,7 +5,7 @@ import os
 
 sys.path.append(".")
 warnings.filterwarnings("ignore")
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,2,3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
 
 import datetime
 import numpy as np
@@ -60,7 +60,7 @@ def main():
     args.num_epoch = 300
     args.head_type = 4
     args.batch_class_num_B = 2
-    # args.similarity_pretrained = "saves/naive_CleanBase_CUB_lr0.005_b192_wd0.0001_12121308/naive_CleanBase_CUB_lr0.005_b192_wd0.0001_12121308_0.4914.pth"
+    args.similarity_pretrained = "../saves/pretrained/CUB/pretrained_84.5.pth"
 
     init_log(args.exp_name)
     log(args)
@@ -75,22 +75,23 @@ def main():
     #
     # base_test_loader = data_helper.get_base_test_loader()     # base test set 150类 4326张图片
     # novel_test_loader = data_helper.get_novel_test_loader()   # novel test set 50类 1468张图片
-
+    #
     # simnet = GANSimilarityNet(args).cuda()
     #
-    # save_image_embedding(simnet, "../image_embeddings/CUB/novel_train_pretrained", "base_train", base_train_loader)
-    # save_image_embedding(simnet, "../image_embeddings/CUB/novel_train_pretrained", "base_test", base_test_loader)
+    dir_name = "image_embeddings/CUB/ori_pretrained"
+    # save_image_embedding(simnet, dir_name, "base_train", base_train_loader)
+    # save_image_embedding(simnet, dir_name, "base_test", base_test_loader)
 
 
     # base_train_image, base_test_image, novel_train_image, novel_test_image, \
     # base_train_label, base_test_label, novel_train_label, novel_test_label = get_dataset("image_embeddings/CUB/")
-    base_train_image, base_test_image, base_train_label, base_test_label = get_dataset("../image_embeddings/CUB/novel_train_pretrained")
+    base_train_image, base_test_image, base_train_label, base_test_label = get_dataset(dir_name)
 
 
-    # base_train_image = base_train_image.to("cpu")
-    # make_graph_file("CUB/base_train_graph_mean", base_train_image)
+    base_train_image = base_train_image.to("cpu")
+    make_graph_file("CUB/base_train_graph_mean_ori_pretrained", base_train_image)
     base_test_image = base_test_image.to("cpu")
-    make_graph_file("CUB/base_test_graph_mean", base_test_image)
+    make_graph_file("CUB/base_test_graph_mean_ori_pretrained", base_test_image)
     # novel_train_image = novel_train_image.to("cpu")
     # make_graph_file("CUB/novel_train_graph_mean", novel_train_image)
     # novel_test_image = novel_test_image.to("cpu")

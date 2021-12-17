@@ -6,8 +6,8 @@ import os
 import time
 from data_preprocess.preprocess import *
 
-def make_curvature_file(datset_str, prefix, type, weight_threshold=0.77, method=0):
-    lines = open(f"../graph/{datset_str}/{type}_graph_mean.txt").readlines()
+def make_curvature_file(datset_str, prefix, type, weight_threshold=0.70, method=0):
+    lines = open(f"../graph/{datset_str}/{type}_graph_mean_ori_pretrained.txt").readlines()
     dir_path = f"../curvature/{datset_str}/{prefix}_{weight_threshold}"
 
     if not os.path.exists(dir_path):
@@ -15,15 +15,17 @@ def make_curvature_file(datset_str, prefix, type, weight_threshold=0.77, method=
 
     f = open(f"{dir_path}/{type}_subgraph.txt", "w")
     Gd = nx.Graph()
-    labels = get_image_label(f"../image_embeddings/CUB/novel_train_pretrained/image_category_{type}.pkl").numpy()
+    labels = get_image_label(f"../image_embeddings/CUB/ori_pretrained/image_category_{type}.pkl").numpy()
     pos_edge = {}
     neg_edge = {}
     edge_weight = []
     for line in lines:
         data = line.strip().split(" ")
         edge_weight.append([int(data[0]), int(data[1]), float(data[2])])
+    num = 0
     for edge in edge_weight:
         if edge[2] > weight_threshold:
+            num += 1
             Gd.add_edge(edge[0], edge[1], weight=edge[2])
             f.write(f"{edge[0]} {edge[1]} {edge[2]}\n")
             if labels[edge[0]] != labels[edge[1]]:
@@ -40,7 +42,7 @@ def make_curvature_file(datset_str, prefix, type, weight_threshold=0.77, method=
                 if edge[1] not in pos_edge:
                     pos_edge[edge[1]] = []
                 pos_edge[edge[1]].append((edge[1], edge[0]))
-
+    print(num)
     pickle.dump({
         "pos_edge": pos_edge,
         "neg_edge": neg_edge
@@ -58,12 +60,12 @@ def make_curvature_file(datset_str, prefix, type, weight_threshold=0.77, method=
     current_time = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
     print(f"{current_time} done.")
 
-make_curvature_file("CUB", "cos_mean", "base_test")
-# lines = open("../graph/CUB/base_train_graph_mean.txt", "r").readlines()
-# f = open("../graph/CUB/base_train_graph_mean_10class.txt", "w")
+# make_curvature_file("CUB", "cos_mean", "base_train")
+# lines = open("../graph/CUB/base_train_graph_mean_ori_pretrained.txt", "r").readlines()
+# f = open("../graph/CUB/base_train_graph_mean_ori_pretrained_10class.txt", "w")
 
-# lines = open("../curvature/CUB/cos_mean_0.77/graph_base_train.edge_list_OllivierRicci.txt", "r").readlines()
-# f = open("../curvature/CUB/cos_mean_0.77/graph_base_train.edge_list_OllivierRicci_10class.txt", "w")
+lines = open("../curvature/CUB/cos_mean_0.7/graph_base_train.edge_list_OllivierRicci.txt", "r").readlines()
+f = open("../curvature/CUB/cos_mean_0.7/graph_base_train.edge_list_OllivierRicci_10class.txt", "w")
 # valid_list = []
 # def calcu_data(value):
 #     if value >= 183 and value < 303:
@@ -81,13 +83,13 @@ make_curvature_file("CUB", "cos_mean", "base_test")
 #     valid_list.append(i)
 # for i in range(567, 657):
 #     valid_list.append(i)
-# for line in lines:
-#     data = line.strip().split(" ")
-#     data[0] = int(data[0])
-#     data[1] = int(data[1])
-#     data[2] = float(data[2])
-#     # if(data[0] in valid_list and data[1] in valid_list):
-#     #     f.write(f"{calcu_data(data[0])} {calcu_data(data[1])} {data[2]}\n")
-#     if(data[0] < 300 and data[1] < 300):
-#         f.write(f"{data[0]} {data[1]} {data[2]}\n")
-# print(1)
+for line in lines:
+    data = line.strip().split(" ")
+    data[0] = int(data[0])
+    data[1] = int(data[1])
+    data[2] = float(data[2])
+# #     # if(data[0] in valid_list and data[1] in valid_list):
+# #     #     f.write(f"{calcu_data(data[0])} {calcu_data(data[1])} {data[2]}\n")
+    if(data[0] < 300 and data[1] < 300):
+        f.write(f"{data[0]} {data[1]} {data[2]}\n")
+print(1)

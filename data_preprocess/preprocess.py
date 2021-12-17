@@ -38,7 +38,7 @@ def merge_image_embedding(prefix, type, num):
     image_embedding = None
     for i in range(num):
         embedding = pickle.load(open(f"{prefix}/image_embed_{type}_{i}", "rb"))
-        if image_embedding != None:
+        if i != 0:
             image_embedding = torch.cat((image_embedding, embedding), dim=0)
         else:
             image_embedding = embedding
@@ -92,7 +92,7 @@ def make_graph_file(name, images):
     print(name)
     mean = torch.mean(images, dim=0)
     images = images - mean
-    f = open(f"../graph/{name}.txt", "w")
+    f = open(f"graph/{name}.txt", "w")
     for source_node_id in range(images.size(0)):
         print(source_node_id)
         for target_node_id in range(source_node_id+1, images.size(0)):
@@ -109,7 +109,7 @@ def save_image_embedding(simnet, prefix, type, data_loader):
         images, categories, file_names = image_info
         images = simnet.backbone(images)
         pickle.dump(images, open(f"{prefix}/image_embed_{type}_{batch_i}", "wb"))
-        if image_category != None:
+        if batch_i != 0:
             image_category = torch.cat((image_category, categories))
         else:
             image_category = categories

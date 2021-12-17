@@ -7,6 +7,7 @@ import numpy as np
 import pickle
 from torch_geometric.utils import add_self_loops, remove_self_loops,degree,softmax
 from CurvGN_module.curvGN import curvGN
+from torch_geometric.nn import GATConv, GCNConv
 
 def minmaxscaler(x):
     for i in range(len(x)):
@@ -20,13 +21,20 @@ class Net(torch.nn.Module):
         super(Net, self).__init__()
         self.conv1 = curvGN(in_channels=num_features, out_channels=128)
         self.conv2 = curvGN(in_channels=128, out_channels=num_classes)
-        self.fc = Linear(2*num_classes, 2)
+        # self.conv1 = GATConv(num_features, 64, heads=8, dropout=0.5)
+        # self.conv2 = GATConv(64 * 8, num_classes, heads=1, concat=False, dropout=0.5)
+        # self.conv1 = GCNConv(num_features, 256)
+        # self.conv2 = GCNConv(256, num_classes)
+        self.fc = Linear(2*(num_classes), 2)
     def forward(self, data):
-        x = F.dropout(data.x, p=0.0, training=self.training)
+        # x = torch.cat((data.x, data.node_curvature), dim=1)
+        x = F.dropout(data.x, p=0.5, training=self.training)
         x = self.conv1(x, data.edge_index, data.w_mul)
-        x = F.elu(x)
-        x = F.dropout(x, p=0.0, training=self.training)
+        x = F.selu(x)
+        # x = torch.cat((x, data.node_curvature), dim=1)
+        x = F.dropout(x, p=0.5, training=self.training)
         x = self.conv2(x, data.edge_index, data.w_mul)
+        # x = torch.cat((x, data.node_curvature), dim=1)
         # x_n = x.detach().numpy()
         # x_n = minmaxscaler(x_n)
         # with open("vectors_norm","wb") as f:
@@ -39,7 +47,7 @@ def num(strings):
     except ValueError:
         return float(strings)
 
-def call(train_dataset, test_dataset, name, num_features, num_classes, config, hidden_state=64):
+def call(train_dataset, test_dataset, name, num_features, num_classes, config, hidden_state=128):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     edge_curvature_train = train_dataset.edge_curvature
