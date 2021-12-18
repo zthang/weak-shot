@@ -4,7 +4,7 @@ import os
 
 sys.path.append(".")
 warnings.filterwarnings("ignore")
-os.environ['CUDA_VISIBLE_DEVICES']='0,1,2,3'
+os.environ['CUDA_VISIBLE_DEVICES']='1,3'
 
 import datetime
 import numpy as np
@@ -60,6 +60,8 @@ def main():
     args.num_epoch = 50
     args.head_type = 4
     args.batch_class_num_B = 2
+    args.similarity_pretrained = "saves/pretrained/CUB/pretrained_84.5.pth"
+    args.similarity_net ='saves/pretrained/CUB/h4f2_86.5.pth'
 
     args.exp_name += f'GANSimilarity_{args.exp_name}_t{args.target_domain}_beta{args.beta}_{args.source_set}2{args.target_set}_{os.path.basename(args.data_path)}' \
                      f'_lr{args.lr}_b{args.batch_size}_h{args.head_type}' \
@@ -101,13 +103,15 @@ def main():
     base_similarity_test_loader = get_similarity_test_loader2(args, base_test_loader)
     novel_similarity_test_loader = get_similarity_test_loader2(args, novel_test_loader)
 
-    simnet = GANSimilarityNet(args).cuda()
+    simnet = torch.load(args.similarity_net)
+    simnet.reset_gpu()
+    # simnet = GANSimilarityNet(args).cuda()
     domain_classifier = nn.DataParallel(DomainClassifier(args, simnet.diff_dim)).cuda()
 
     train_acc, test_acc, val_acc, val0_acc, domain = [], [], [], [], []
 
     for epoch in range(args.num_epoch):
-        train_meter, domain_meter, cls_loss_avg = train(args, epoch, simnet, domain_classifier, A_loader, B_loader)
+        # train_meter, domain_meter, cls_loss_avg = train(args, epoch, simnet, domain_classifier, A_loader, B_loader)
 
         val_meter = evaluation(args, epoch, simnet, base_similarity_test_loader)
         test_meter = evaluation(args, epoch, simnet, novel_similarity_test_loader)
