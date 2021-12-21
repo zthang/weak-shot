@@ -35,6 +35,9 @@ class CUBHelper(DataHelper):
     def _get_noisy_novel_set(self):
         return WebSet(self.root_path, self.novel_categories, self.train_transforms)
 
+    def _get_noisy_novel_sample_set(self, target_category):
+        return WebSampledSet(self.root_path, self.novel_categories, self.train_transforms, target_category=target_category)
+
     def _get_noisy_base_set(self):
         return NoisySet(self.root_path, self.base_categories, self.train_transforms)
 
@@ -155,7 +158,29 @@ class WebSet(DataSet):
         print(max_noisy_images_per)
         return
 
+class WebSampledSet(DataSet):
 
+    def __init__(self, root_path, categories, transform=None, max_noisy_images_per=None, target_category=None, sample_num=30):
+        super(WebSampledSet, self).__init__(root_path, categories, transform)
+
+        self.image_list = []
+        for category_name in categories:
+
+            web_name = category_name
+            dir_path = os.path.join(self.root_path, 'CUB_web', web_name)
+            if not os.path.exists(dir_path):
+                print(category_name)
+                print(dir_path)
+                raise FileNotFoundError
+
+            image_names = sorted(os.listdir(dir_path))
+            category_list = [(os.path.join(dir_path, image_name),
+                              self.category2int[category_name]) for
+                             image_name in image_names]
+
+            self.image_list += category_list[:max_noisy_images_per] if web_name == target_category else category_list[:sample_num]
+        print(max_noisy_images_per)
+        return
 '''
 ===========================================
 The Caltech-UCSD Birds-200-2011 Dataset

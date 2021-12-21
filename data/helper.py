@@ -51,6 +51,10 @@ class DataHelper:
         data_set = self._get_noisy_novel_set()
         return Loader(data_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
+    def get_noisy_novel_sample_loader(self, target_category):
+        data_set = self._get_noisy_novel_sample_set(target_category)
+        return Loader(data_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
+
     def get_clean_novel_loader(self):
         data_set = self._get_clean_novel_set()
         return Loader(data_set, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
@@ -69,6 +73,9 @@ class DataHelper:
         raise NotImplementedError
 
     def _get_noisy_novel_set(self):
+        raise NotImplementedError
+
+    def _get_noisy_novel_sample_set(self, target_category):
         raise NotImplementedError
 
     def _get_clean_base_set(self):
@@ -135,8 +142,8 @@ class DataSet:
 
     def __getitem__(self, index):
         img_path, category = self.image_list[index]
-        image = Image.open(img_path).convert('RGB')
-
+        image = Image.open(img_path).convert('RGB')  # Todo
+        # image = torch.tensor(1)
         if self.transform:
             image = self.transform(image)
 

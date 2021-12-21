@@ -161,7 +161,7 @@ def test_2():
     base_similarity_test_loader = get_similarity_test_loader2(args, base_test_loader)
     meter = MetrixMeter(['Dissimilarity', 'Similarity'], default_metric='f1score')
     name2index = {}
-    model = torch.load("saves/model/curvGN_0.6267.pth")
+    model = torch.load("saves/model/curvGN_1218_0.6292.pth")
     print("loading model, done.")
     _, embeddings = model(test_dataset)
     for index, image_name in enumerate(base_similarity_test_loader.dataset.image_list):
@@ -181,7 +181,7 @@ def test_2():
         # _, pred = torch.max(logits, 1)
         targets = make_similarities(categories)
         meter.update(logits, targets)
-    log(meter.report())
+    print(meter.report())
 
 def test_3():
     from data_preprocess.prepare_GCN_data import get_GCN_data
@@ -190,15 +190,25 @@ def test_3():
     train_dataset, test_dataset = get_GCN_data("CUB")
     print("loading data, done.")
     _, train_dataset, test_dataset = ConvCurv.call(train_dataset, test_dataset, "CUB", train_dataset.x.size(1), train_dataset.num_classes, None)
-    model = torch.load("saves/model/curvGN_0.6267.pth")
+    model = torch.load("saves/model/curvGN_1218_0.6246.pth")
     print("loading model, done.")
     _, embeddings = model(test_dataset)
-    q, k, v, pairs, labels = get_qkv_dataset(embeddings, test_dataset.pos_edge_index_0, test_dataset.pos_edge_index_1, test_dataset.neg_edge_index_0, test_dataset.neg_edge_index_1)
-    logits = model.fc(pairs)
+    q, k, v, pair_data_loader, labels = get_qkv_dataset(embeddings, test_dataset.pos_edge_index_0, test_dataset.pos_edge_index_1, test_dataset.neg_edge_index_0, test_dataset.neg_edge_index_1, 1)
+    logits = None
+    for i, (pair_index_0, pair_index_1) in enumerate(pair_data_loader):
+        pair_embedding_0 = torch.index_select(embeddings, 0, pair_index_0)
+        pair_embedding_1 = torch.index_select(embeddings, 0, pair_index_1)
+        pairs = torch.cat((pair_embedding_0, pair_embedding_1), dim=1)
+        out = model.fc(pairs)
+        if logits != None:
+            logits = torch.cat((logits, out), dim=0)
+        else:
+            logits = out
     nll_loss = F.log_softmax(logits, dim=1)
     cross_entropy_loss = F.nll_loss(nll_loss, labels)
     _, predictions = torch.max(nll_loss.data, 1)
-    labels, predictions = labels.cpu().detach(), predictions.cpu().detach()
+    predictions = predictions.cpu()
+    labels = labels.cpu()
     acc = metrics.accuracy_score(labels, predictions)
     precision = metrics.precision_score(labels, predictions)
     recall = metrics.recall_score(labels, predictions)
@@ -206,4 +216,5 @@ def test_3():
     auc = metrics.roc_auc_score(labels, predictions)
     print(acc, precision, recall, f1, auc)
 
-test_1()
+if __name__ == '__main__':
+    test_3()

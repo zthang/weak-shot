@@ -78,7 +78,11 @@ def main():
     #
     # simnet = GANSimilarityNet(args).cuda()
     #
-    dir_name = "image_embeddings/CUB/ori_pretrained"
+    for category_name in data_helper.novel_categories:
+        dir_name = f"image_embeddings/CUB/ori_pretrained/{category_name}"
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        category_loader = data_helper.get_nois
     # save_image_embedding(simnet, dir_name, "base_train", base_train_loader)
     # save_image_embedding(simnet, dir_name, "base_test", base_test_loader)
 

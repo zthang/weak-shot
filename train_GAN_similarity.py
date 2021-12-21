@@ -4,7 +4,7 @@ import os
 
 sys.path.append(".")
 warnings.filterwarnings("ignore")
-os.environ['CUDA_VISIBLE_DEVICES']='1,3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
 
 import datetime
 import numpy as np
@@ -103,15 +103,15 @@ def main():
     base_similarity_test_loader = get_similarity_test_loader2(args, base_test_loader)
     novel_similarity_test_loader = get_similarity_test_loader2(args, novel_test_loader)
 
-    simnet = torch.load(args.similarity_net)
-    simnet.reset_gpu()
-    # simnet = GANSimilarityNet(args).cuda()
+    # simnet = torch.load(args.similarity_net)
+    # simnet.reset_gpu()
+    simnet = GANSimilarityNet(args).cuda()
     domain_classifier = nn.DataParallel(DomainClassifier(args, simnet.diff_dim)).cuda()
 
     train_acc, test_acc, val_acc, val0_acc, domain = [], [], [], [], []
 
     for epoch in range(args.num_epoch):
-        # train_meter, domain_meter, cls_loss_avg = train(args, epoch, simnet, domain_classifier, A_loader, B_loader)
+        train_meter, domain_meter, cls_loss_avg = train(args, epoch, simnet, domain_classifier, A_loader, B_loader)
 
         val_meter = evaluation(args, epoch, simnet, base_similarity_test_loader)
         test_meter = evaluation(args, epoch, simnet, novel_similarity_test_loader)
