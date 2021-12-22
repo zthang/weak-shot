@@ -60,6 +60,7 @@ def call(train_dataset, test_dataset, name, num_features, num_classes, config, h
     train_dataset.edge_index, _ = add_self_loops(train_dataset.edge_index, num_nodes=train_dataset.x.size(0))
     train_dataset.w_mul = torch.cat((edge_curvature_train, edge_weight_train), dim=1)
     train_dataset.w_mul = train_dataset.w_mul.to(device)
+
     edge_curvature_test = test_dataset.edge_curvature
     edge_weight_test = test_dataset.edge_weight
     edge_curvature_test = edge_curvature_test + [0 for i in range(test_dataset.x.size(0))]
@@ -70,5 +71,6 @@ def call(train_dataset, test_dataset, name, num_features, num_classes, config, h
     test_dataset.edge_index, _ = add_self_loops(test_dataset.edge_index, num_nodes=test_dataset.x.size(0))
     test_dataset.w_mul = torch.cat((edge_curvature_test, edge_weight_test), dim=1)
     test_dataset.w_mul = test_dataset.w_mul.to(device)
+
     model, train_dataset, test_dataset = Net(num_features, hidden_state).to(device), train_dataset.to(device), test_dataset.to(device)
     return model, train_dataset, test_dataset

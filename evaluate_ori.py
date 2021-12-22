@@ -2,7 +2,7 @@ import os
 
 import torch
 
-os.environ['CUDA_VISIBLE_DEVICES']='2,3'
+os.environ['CUDA_VISIBLE_DEVICES']='2, 3'
 from data_preprocess.preprocess import *
 from torch.utils.data import Dataset, DataLoader
 from imblearn.under_sampling import RandomUnderSampler

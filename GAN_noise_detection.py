@@ -36,7 +36,7 @@ def main():
     args = parser.parse_args()
 
     args.data_path = "workspace/dataset/CUB"
-    args.save_dir = "saves/h4f0_84.5"
+    args.save_dir = "weight/CUB"
     args.similarity_net = "saves/GANSimilarity__tnovel_train_beta0.0_clean_base2noisy_novel_CUB_lr0.005_b50_h4_bnA20_bnB2_sw0_nf0_10281646/simnet_GANSimilarity__tnovel_train_beta0.0_clean_base2noisy_novel_CUB_lr0.005_b50_h4_bnA20_bnB2_sw0_nf0_10281646_best.pth"
 
     args.exp_name += f'NoiseDetection_{os.path.basename(args.data_path)}' \
@@ -81,33 +81,33 @@ def main():
                 feats = []
                 for b in range(batch_step):
                     paths = image_list[b * batch_size:b * batch_size + batch_size]
-                    images = [test_transforms(Image.open(path).convert('RGB')) for path in paths]
-                    feat = model.backbone(torch.stack(images).cuda())
-
-                    feats.append(feat.data.cpu())
+                    # images = [test_transforms(Image.open(path).convert('RGB')) for path in paths]
+                    # feat = model.backbone(torch.stack(images).cuda())
+                    #
+                    # feats.append(feat.data.cpu())
                     names += paths
-                feats = torch.cat(feats)
-                p = f'{save_path}/{noisy_set.int2category[c]}_feat.pth'
-                os.makedirs(os.path.dirname(p), exist_ok=True)
-                torch.save(feats, p)
+                # feats = torch.cat(feats)
+                # p = f'{save_path}/{noisy_set.int2category[c]}_feat.pth'
+                # os.makedirs(os.path.dirname(p), exist_ok=True)
+                # torch.save(feats, p)
                 torch.save(names, f'{save_path}/{noisy_set.int2category[c]}_name.pth')
             else:
                 names = torch.load(f'{save_path}/{noisy_set.int2category[c]}_name.pth')
                 feats = torch.load(f'{save_path}/{noisy_set.int2category[c]}_feat.pth')
 
-            if not os.path.exists(f'{save_path}/{noisy_set.int2category[c]}_matrix.pth'):
-                L = len(feats)
-                similarity_matrix = feats.new_ones(L, L) * -1
-                for i in tqdm(range(L)):
-                    paired = pair_feature(p=feats[i], Q=feats)
-                    res, _ = model.similarity_head(paired.cuda())
-                    res = res.cpu()
-                    similarity = torch.softmax(res, dim=1)[:, 1]
-                    similarity_matrix[i] = similarity
-                torch.save(similarity_matrix, f'{save_path}/{noisy_set.int2category[c]}_matrix.pth')
-            else:
-                similarity_matrix = torch.load(f'{save_path}/{noisy_set.int2category[c]}_matrix.pth')
-                densities = get_density2(distance=1 - similarity_matrix)
+            # if not os.path.exists(f'{save_path}/{noisy_set.int2category[c]}_matrix.pth'):
+            #     L = len(feats)
+            #     similarity_matrix = feats.new_ones(L, L) * -1
+            #     for i in tqdm(range(L)):
+            #         paired = pair_feature(p=feats[i], Q=feats)
+            #         res, _ = model.similarity_head(paired.cuda())
+            #         res = res.cpu()
+            #         similarity = torch.softmax(res, dim=1)[:, 1]
+            #         similarity_matrix[i] = similarity
+            #     torch.save(similarity_matrix, f'{save_path}/{noisy_set.int2category[c]}_matrix.pth')
+            # else:
+            #     similarity_matrix = torch.load(f'{save_path}/{noisy_set.int2category[c]}_matrix.pth')
+            #     densities = get_density2(distance=1 - similarity_matrix)
                 # if c < 2:
                 #     vis_density(densities, names, category_name)
                 # d = 1

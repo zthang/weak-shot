@@ -34,6 +34,12 @@ def get_dataset(prefix):
     # return base_train_image, base_test_image, novel_train_image, novel_test_image, base_train_label, base_test_label, novel_train_label, novel_test_label
     return base_train_image, base_test_image, base_train_label, base_test_label
 
+def get_novel_dataset(prefix):
+    image = get_image_embedding(f"{prefix}/image_embed_web.pkl")
+    label = get_image_label(f"{prefix}/image_category_web.pkl")
+
+    return image, label
+
 def merge_image_embedding(prefix, type, num):
     image_embedding = None
     for i in range(num):

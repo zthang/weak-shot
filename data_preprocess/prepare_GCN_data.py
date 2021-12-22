@@ -2,7 +2,7 @@ from torch_geometric.data import Data
 from itertools import repeat
 import torch
 import pickle
-from data_preprocess.preprocess import get_dataset, get_edge_weight_curvature
+from data_preprocess.preprocess import *
 from torch_scatter import scatter
 
 def edge_index_from_dict(graph_dict):
@@ -79,6 +79,35 @@ def get_GCN_data(dataset_str):
 
     return train_data, test_data
 
+def get_GCN_novel_data(dataset_str, category):
+    if dataset_str == "CUB":
+        dir_name = f"image_embeddings/CUB/ori_pretrained/{category}"
+        x, y = get_novel_dataset(dir_name)
+        edge_index, edge_weight, edge_curvature = get_edge_weight_curvature("CUB", weight_file_name=f"cos_mean_0.7/novel/{category}_subgraph", curvature_file_name=f"cos_mean_0.7/novel/graph_{category}.edge_list_OllivierRicci")
+        pos_neg_edge = pickle.load(open(f"curvature/CUB/cos_mean_0.7/novel/{category}_pos_neg_edge.pkl", "rb"))
 
+        pos_edge = []
+        neg_edge = []
+        for key in pos_neg_edge["neg_edge"]:
+            if key in pos_neg_edge["pos_edge"]:
+                pos_edge += pos_neg_edge["pos_edge"][key]
+                neg_edge += pos_neg_edge["neg_edge"][key]
+        pos_edge = torch.tensor(pos_edge)
+        neg_edge = torch.tensor(neg_edge)
+
+        train_index = torch.arange(y.size(0), dtype=torch.long)
+        train_mask = index_to_mask(train_index, size=y.size(0))
+
+        data = Data(x=x, edge_index=edge_index, y=y)
+        data.train_mask = train_mask
+        data.edge_weight = edge_weight
+        data.edge_curvature = edge_curvature
+        data.num_classes = torch.max(y)+1
+        data.pos_edge_index_0 = pos_edge[:, 0]
+        data.pos_edge_index_1 = pos_edge[:, 1]
+        data.neg_edge_index_0 = neg_edge[:, 0]
+        data.neg_edge_index_1 = neg_edge[:, 1]
+
+    return data
 
 # train_data, test_data = get_GCN_data("CUB")

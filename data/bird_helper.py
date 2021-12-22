@@ -2,6 +2,7 @@ from data.helper import *
 import os
 import scipy.io as sio
 import numpy as np
+import random
 
 
 def read_split_from_file(fpath):
@@ -177,8 +178,11 @@ class WebSampledSet(DataSet):
             category_list = [(os.path.join(dir_path, image_name),
                               self.category2int[category_name]) for
                              image_name in image_names]
-
-            self.image_list += category_list[:max_noisy_images_per] if web_name == target_category else category_list[:sample_num]
+            if web_name == target_category:
+                self.image_list += category_list[:max_noisy_images_per]
+            else:
+                random.shuffle(category_list)
+                self.image_list += category_list[:sample_num]
         print(max_noisy_images_per)
         return
 '''
