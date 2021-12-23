@@ -2,7 +2,7 @@ import sys
 import warnings
 import os
 import time
-os.environ['CUDA_VISIBLE_DEVICES']='0,1'
+os.environ['CUDA_VISIBLE_DEVICES']='0,3'
 sys.path.append(".")
 warnings.filterwarnings("ignore")
 
@@ -42,8 +42,8 @@ def main():
     parser = add_pretrain(parser)
     args = parser.parse_args()
 
-    args.lr = 1e-4
-    args.batch_size = 8
+    args.lr = 5e-3
+    args.batch_size = 128
     args.num_epoch = 60
     args.data_path = "workspace/dataset/CUB"
     args.load_dir = "weight/CUB"
@@ -141,20 +141,20 @@ def evaluation(args, epoch, model, data_loader, retrieve_dict):
 
     with torch.no_grad():
         for batch_i, (images, categories, im_names) in tqdm(enumerate(data_loader)):
-            retrieve_distribution = []
-            for name in im_names:
-                retrieve_distribution.append(retrieve_dict[f"{prefix}/{name}"])
-            distribution = torch.stack(retrieve_distribution).cuda()
+            # retrieve_distribution = []
+            # for name in im_names:
+            #     retrieve_distribution.append(retrieve_dict[f"{prefix}/{name}"])
+            # distribution = torch.stack(retrieve_distribution).cuda()
             predictions = model(images.cuda())
-            predictions = torch.nn.functional.softmax(predictions, dim=1)
-            predictions = predictions + distribution
+            # predictions = torch.nn.functional.softmax(predictions, dim=1)
+            # predictions = predictions + 0.1*distribution
             meter.update(predictions, categories)
 
     return meter
 
 
 def get_retrieve_dict():
-    return torch.load("weight/CUB/retrieve_dict.pth")
+    return torch.load("weight/CUB/retrieve_noisy_dict_30_att.pth")
 
 def get_weights(args, categories, im_names, weight_dict):
     ws = []

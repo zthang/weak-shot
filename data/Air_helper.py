@@ -1,6 +1,6 @@
 import sys
 import warnings
-
+import random
 sys.path.append(".")
 warnings.filterwarnings("ignore")
 
@@ -126,6 +126,9 @@ class AirHelper(DataHelper):
     def _get_noisy_novel_set(self):
         return NoisySet(self.root_path, self.novel_categories, self.train_transforms)
 
+    def _get_noisy_novel_sample_set(self, target_category):
+        return WebSampledSet(self.root_path, self.novel_categories, self.train_transforms, target_category=target_category)
+
     def _get_noisy_base_set(self):
         raise NotImplementedError
         return NoisySet(self.root_path, self.novel_web_names, self.train_transforms)
@@ -190,7 +193,30 @@ class NoisySet(DataSet):
         print(lengths)
         return
 
+class WebSampledSet(DataSet):
+    def __init__(self, root_path, categories, transform=None, max_noisy_images_per=None, target_category=None, sample_num=30):
+        super(WebSampledSet, self).__init__(root_path, categories, transform)
 
+        self.image_list = []
+        for category_name in categories:
+            web_name = category_name
+            dir_path = os.path.join(self.root_path, 'hardest_new_set', web_name)
+            if not os.path.exists(dir_path):
+                print(category_name)
+                print(dir_path)
+                raise FileNotFoundError
+
+            image_names = sorted(os.listdir(dir_path))
+            category_list = [(os.path.join(dir_path, image_name),
+                              self.category2int[category_name]) for
+                             image_name in image_names]
+            if web_name == target_category:
+                self.image_list += category_list[:max_noisy_images_per]
+            else:
+                random.shuffle(category_list)
+                self.image_list += category_list[:sample_num]
+        print(max_noisy_images_per)
+        return
 # class NoisySet(DataSet):
 #     def __init__(self, root_path, categories, transform=None, max_noisy_images_per=None):
 #         super(NoisySet, self).__init__(root_path, categories, transform)

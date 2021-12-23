@@ -2,7 +2,7 @@ import os
 
 import torch
 
-os.environ['CUDA_VISIBLE_DEVICES']='2, 3'
+os.environ['CUDA_VISIBLE_DEVICES']='1,2'
 from data_preprocess.preprocess import *
 from torch.utils.data import Dataset, DataLoader
 from imblearn.under_sampling import RandomUnderSampler
@@ -216,5 +216,25 @@ def test_3():
     auc = metrics.roc_auc_score(labels, predictions)
     print(acc, precision, recall, f1, auc)
 
+def test_4():
+    model = torch.load("saves/main_EF1_one_mean_savg1_WCUB_CUB_lr0.0005_b8_20_0.5_12220124/main_EF1_one_mean_savg1_WCUB_CUB_lr0.0005_b8_20_0.5_12220124_best.pth")
+    prefix = '/home/zthang/zthang/SimTrans-Weak-Shot-Classification'
+    args = get_arg()
+    data_helper = get_data_helper(args)
+    test_loader = data_helper.get_novel_test_loader()
+    meter = MetrixMeter(test_loader.dataset.categories)
+    retrieve_dict = torch.load("weight/CUB/retrieve_noisy_dict_50_sum.pth")
+    with torch.no_grad():
+        for batch_i, (images, categories, im_names) in tqdm(enumerate(test_loader)):
+            retrieve_distribution = []
+            for name in im_names:
+                retrieve_distribution.append(retrieve_dict[f"{name}"])
+            distribution = torch.stack(retrieve_distribution).cuda()
+            predictions = model(images.cuda())
+            predictions = torch.nn.functional.softmax(predictions, dim=1)
+            predictions = predictions + 0.8*distribution
+            meter.update(predictions, categories)
+
+    return meter
 if __name__ == '__main__':
-    test_3()
+    print(test_4())

@@ -4,7 +4,7 @@ import warnings
 sys.path.append(".")
 warnings.filterwarnings("ignore")
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='1,2,3'
+os.environ['CUDA_VISIBLE_DEVICES']='2, 3'
 import datetime
 import numpy as np
 import torch
@@ -37,9 +37,9 @@ def main():
     args.lr = 5e-3
     args.batch_size = 192
     args.num_epoch = 300
-    args.data_path = "workspace/dataset/CUB"
+    args.data_path = "workspace/dataset/Air"
     args.exp_type = "NoisyNovel"
-
+    # args.resume = "saves/naive_NoisyNovel_Car_lr0.005_b192_wd0.0001_12230005/naive_NoisyNovel_Car_lr0.005_b192_wd0.0001_12230005_0.7989.pth"
     args.exp_name += f'naive_{args.exp_type}_{os.path.basename(args.data_path)}_lr{args.lr}_b{args.batch_size}_wd{args.wd}_' \
                      f'{datetime.datetime.now().strftime("%m%d%H%M")}'
 

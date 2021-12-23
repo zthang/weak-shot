@@ -142,7 +142,6 @@ class WebSet(DataSet):
 
         self.image_list = []
         for category_name in categories:
-
             web_name = category_name
             dir_path = os.path.join(self.root_path, 'CUB_web', web_name)
             if not os.path.exists(dir_path):
@@ -166,7 +165,6 @@ class WebSampledSet(DataSet):
 
         self.image_list = []
         for category_name in categories:
-
             web_name = category_name
             dir_path = os.path.join(self.root_path, 'CUB_web', web_name)
             if not os.path.exists(dir_path):

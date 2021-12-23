@@ -7,23 +7,28 @@ import time
 import sys
 from os.path import dirname, abspath
 path = dirname(dirname(abspath(__file__)))
-print(path)
 sys.path.append(path)
 from data_preprocess.preprocess import *
 
-def make_curvature_file(datset_str, prefix, type, weight_threshold=0.70, method=0):
-    # lines = open(f"../graph/{datset_str}/{type}_graph_mean_ori_pretrained.txt").readlines()
-    # dir_path = f"../curvature/{datset_str}/{prefix}_{weight_threshold}"
-    print(type)
-    lines = open(f"../graph/{datset_str}/novel/{type}.txt").readlines()
-    dir_path = f"../curvature/{datset_str}/{prefix}_{weight_threshold}/novel"
+def make_curvature_file(datset_str, prefix, type, weight_threshold=0.70, method=0, is_novel=False):
+    current_time = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
+    print(f"{current_time} {type}")
+    if is_novel:
+        lines = open(f"../graph/{datset_str}/novel/{type}.txt").readlines()
+        dir_path = f"../curvature/{datset_str}/{prefix}_{weight_threshold}/novel"
+    else:
+        lines = open(f"../graph/{datset_str}/{type}_graph_mean_ori_pretrained.txt").readlines()
+        dir_path = f"../curvature/{datset_str}/{prefix}_{weight_threshold}"
 
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
     f = open(f"{dir_path}/{type}_subgraph.txt", "w")
     Gd = nx.Graph()
-    labels = get_image_label(f"../image_embeddings/CUB/ori_pretrained/{type}/image_category_web.pkl").numpy()
+    if is_novel:
+        labels = get_image_label(f"../image_embeddings/{datset_str}/ori_pretrained/{type}/image_category_web.pkl").numpy()
+    else:
+        labels = get_image_label(f"../image_embeddings/{datset_str}/ori_pretrained/image_category_{type}.pkl").numpy()
     pos_edge = {}
     neg_edge = {}
     edge_weight = []
@@ -69,60 +74,60 @@ def make_curvature_file(datset_str, prefix, type, weight_threshold=0.70, method=
     print(f"{current_time} done.")
 
 
-novel_category = ['043.Yellow_bellied_Flycatcher',
-                  '111.Loggerhead_Shrike',
-                  '023.Brandt_Cormorant',
-                  '098.Scott_Oriole',
-                  '055.Evening_Grosbeak',
-                  '130.Tree_Sparrow',
-                  '139.Scarlet_Tanager',
-                  '123.Henslow_Sparrow',
-                  '156.White_eyed_Vireo',
-                  '124.Le_Conte_Sparrow',
-                  '200.Common_Yellowthroat',
-                  '072.Pomarine_Jaeger',
-                  '173.Orange_crowned_Warbler',
-                  '028.Brown_Creeper',
-                  '119.Field_Sparrow',
-                  '165.Chestnut_sided_Warbler',
-                  '103.Sayornis',
-                  '180.Wilson_Warbler',
-                  '077.Tropical_Kingbird',
-                  '012.Yellow_headed_Blackbird',
-                  '045.Northern_Fulmar',
-                  '190.Red_cockaded_Woodpecker',
-                  '191.Red_headed_Woodpecker',
-                  '138.Tree_Swallow',
-                  '157.Yellow_throated_Vireo',
-                  '052.Pied_billed_Grebe',
-                  '033.Yellow_billed_Cuckoo',
-                  '164.Cerulean_Warbler',
-                  '031.Black_billed_Cuckoo',
-                  '143.Caspian_Tern',
-                  '094.White_breasted_Nuthatch',
-                  '070.Green_Violetear',
-                  '097.Orchard_Oriole',
-                  '091.Mockingbird',
-                  '104.American_Pipit',
-                  '127.Savannah_Sparrow',
-                  '161.Blue_winged_Warbler',
-                  '049.Boat_tailed_Grackle',
-                  '169.Magnolia_Warbler',
-                  '148.Green_tailed_Towhee',
-                  '113.Baird_Sparrow',
-                  '087.Mallard',
-                  '163.Cape_May_Warbler',
-                  '136.Barn_Swallow',
-                  '188.Pileated_Woodpecker',
-                  '084.Red_legged_Kittiwake',
-                  '026.Bronzed_Cowbird',
-                  '004.Groove_billed_Ani',
-                  '132.White_crowned_Sparrow',
-                  '168.Kentucky_Warbler']
+# novel_category = ['043.Yellow_bellied_Flycatcher',
+#                   '111.Loggerhead_Shrike',
+#                   '023.Brandt_Cormorant',
+#                   '098.Scott_Oriole',
+#                   '055.Evening_Grosbeak',
+#                   '130.Tree_Sparrow',
+#                   '139.Scarlet_Tanager',
+#                   '123.Henslow_Sparrow',
+#                   '156.White_eyed_Vireo',
+#                   '124.Le_Conte_Sparrow',
+#                   '200.Common_Yellowthroat',
+#                   '072.Pomarine_Jaeger',
+#                   '173.Orange_crowned_Warbler',
+#                   '028.Brown_Creeper',
+#                   '119.Field_Sparrow',
+#                   '165.Chestnut_sided_Warbler',
+#                   '103.Sayornis',
+#                   '180.Wilson_Warbler',
+#                   '077.Tropical_Kingbird',
+#                   '012.Yellow_headed_Blackbird',
+#                   '045.Northern_Fulmar',
+#                   '190.Red_cockaded_Woodpecker',
+#                   '191.Red_headed_Woodpecker',
+#                   '138.Tree_Swallow',
+#                   '157.Yellow_throated_Vireo',
+#                   '052.Pied_billed_Grebe',
+#                   '033.Yellow_billed_Cuckoo',
+#                   '164.Cerulean_Warbler',
+#                   '031.Black_billed_Cuckoo',
+#                   '143.Caspian_Tern',
+#                   '094.White_breasted_Nuthatch',
+#                   '070.Green_Violetear',
+#                   '097.Orchard_Oriole',
+#                   '091.Mockingbird',
+#                   '104.American_Pipit',
+#                   '127.Savannah_Sparrow',
+#                   '161.Blue_winged_Warbler',
+#                   '049.Boat_tailed_Grackle',
+#                   '169.Magnolia_Warbler',
+#                   '148.Green_tailed_Towhee',
+#                   '113.Baird_Sparrow',
+#                   '087.Mallard',
+#                   '163.Cape_May_Warbler',
+#                   '136.Barn_Swallow',
+#                   '188.Pileated_Woodpecker',
+#                   '084.Red_legged_Kittiwake',
+#                   '026.Bronzed_Cowbird',
+#                   '004.Groove_billed_Ani',
+#                   '132.White_crowned_Sparrow',
+#                   '168.Kentucky_Warbler']
 
-for c in novel_category[10:]:
-    make_curvature_file("CUB", "cos_mean", c)
-# make_curvature_file("CUB", "cos_mean", "base_train")
+# for c in novel_category[10:]:
+#     make_curvature_file("CUB", "cos_mean", c)
+make_curvature_file("Air", "cos_mean", "base_test", weight_threshold=0.75, is_novel=False)
 # lines = open("../graph/CUB/base_train_graph_mean_ori_pretrained.txt", "r").readlines()
 # f = open("../graph/CUB/base_train_graph_mean_ori_pretrained_10class.txt", "w")
 

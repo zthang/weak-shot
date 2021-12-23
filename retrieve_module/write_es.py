@@ -1,5 +1,4 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='0, 1'
 from evaluate_ori import get_arg
 from data.factory import get_data_helper
 from tqdm import tqdm
@@ -9,6 +8,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 import time
 import numpy as np
+os.environ['CUDA_VISIBLE_DEVICES']='1,2'
 
 def write_es(name, embedding, label, index_name):
     hosts = [
@@ -32,8 +32,8 @@ def write_es(name, embedding, label, index_name):
 args = get_arg()
 simnet = GANSimilarityNet(args).cuda()
 data_helper = get_data_helper(args)
-clean_novel_loader = data_helper.get_clean_novel_loader()
-for batch_i, image_info in tqdm(enumerate(clean_novel_loader)):
+noisy_novel_loader = data_helper.get_noisy_novel_loader()
+for batch_i, image_info in tqdm(enumerate(noisy_novel_loader)):
     images, categories, file_names = image_info
     images = simnet.backbone(images)
-    write_es(file_names, images.cpu().detach().numpy(), categories.numpy(), "web_novel_image")
+    write_es(file_names, images.cpu().detach().numpy(), categories.numpy(), "web_noisy_novel_image")

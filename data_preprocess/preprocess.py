@@ -98,7 +98,7 @@ def make_graph_file(name, images):
     print(name)
     mean = torch.mean(images, dim=0)
     images = images - mean
-    f = open(f"graph/{name}.txt", "w")
+    f = open(f"../graph/{name}.txt", "w")
     for source_node_id in range(images.size(0)):
         print(source_node_id)
         for target_node_id in range(source_node_id+1, images.size(0)):

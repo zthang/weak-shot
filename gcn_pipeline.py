@@ -1,6 +1,6 @@
 import os.path as osp
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='2'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 import numpy
 import torch
 import torch.nn.functional as F
@@ -58,7 +58,7 @@ def get_qkv_dataset(embeddings, pos_edge_index_0, pos_edge_index_1, neg_edge_ind
         pair_index_0 = pair_index_0[index]
         pair_index_1 = pair_index_1[index]
 
-    loader = DataLoader(PairData(pair_index_0, pair_index_1), batch_size=10000, shuffle=False, num_workers=0)
+    loader = DataLoader(PairData(pair_index_0, pair_index_1), batch_size=10000, shuffle=(mode == 0), num_workers=0)
     return q, k, v, loader, torch.as_tensor(labels).cuda()
 
 
@@ -88,53 +88,56 @@ def train(train_mask):
         # cross_entropy_loss = F.nll_loss(nll_loss[train_mask], data.y[train_mask])
         q, k, v, pair_data_loader, labels = get_qkv_dataset(embeddings, train_dataset.pos_edge_index_0, train_dataset.pos_edge_index_1, train_dataset.neg_edge_index_0, train_dataset.neg_edge_index_1, 0)
 
-        main_meter = MetrixMeter(['Dissimilarity', 'Similarity'], default_metric='f1score')
-        cls_loss_avg = AverageMeter('Training cls loss')
-        pair_data_loader = A_pairs_data_loader
-        cross_entropy_loss = None
-        predictions = None
-        labels = None
-        for batch_i, A_data in tqdm(enumerate(pair_data_loader)):
-            A_images, A_categories, A_names = A_data
-            image_index = list(map(lambda x: name2index_train[x[0]], A_names))
-            image_index = torch.tensor(image_index).view(-1, 1)
-            index_0 = image_index.repeat(image_index.size(0), 1)
-            index_1 = image_index.repeat(1, image_index.size(0)).view(-1, image_index.size(1))
-            index_0 = index_0.view(-1).cuda()
-            index_1 = index_1.view(-1).cuda()
-            pair_0 = torch.index_select(embeddings, 0, index_0)
-            pair_1 = torch.index_select(embeddings, 0, index_1)
-            pairs = torch.cat((pair_0, pair_1), dim=1)
-            logits = model.fc(pairs)
-            _, pred = torch.max(logits, 1)
-            targets = make_similarities(A_categories[0].cuda())
-            main_meter.update(logits, targets)
-            cls_loss = criterion(logits, targets)
-            cls_loss_avg.update(cls_loss.mean().item())
-            if batch_i != 0:
-                cross_entropy_loss += cls_loss
-                predictions = torch.cat((predictions, pred), dim=0)
-                labels = torch.cat((labels, targets))
-            else:
-                cross_entropy_loss = cls_loss
-                predictions = pred
-                labels = targets
-        print(main_meter.report())
-        # logits = None
-        # for i, (pair_index_0, pair_index_1) in enumerate(pair_data_loader):
-        #     pair_embedding_0 = torch.index_select(embeddings, 0, pair_index_0)
-        #     pair_embedding_1 = torch.index_select(embeddings, 0, pair_index_1)
-        #     pairs = torch.cat((pair_embedding_0, pair_embedding_1), dim=1)
-        #     out = model.fc(pairs)
-        #     if logits != None:
-        #         logits = torch.cat((logits, out), dim=0)
+        # main_meter = MetrixMeter(['Dissimilarity', 'Similarity'], default_metric='f1score')
+        # cls_loss_avg = AverageMeter('Training cls loss')
+        # pair_data_loader = A_pairs_data_loader
+        # cross_entropy_loss = None
+        # predictions = None
+        # labels = None
+        # for batch_i, A_data in tqdm(enumerate(pair_data_loader)):
+        #     A_images, A_categories, A_names = A_data
+        #     image_index = list(map(lambda x: name2index_train[x[0]], A_names))
+        #     image_index = torch.tensor(image_index).view(-1, 1)
+        #     index_0 = image_index.repeat(image_index.size(0), 1)
+        #     index_1 = image_index.repeat(1, image_index.size(0)).view(-1, image_index.size(1))
+        #     index_0 = index_0.view(-1).cuda()
+        #     index_1 = index_1.view(-1).cuda()
+        #     pair_0 = torch.index_select(embeddings, 0, index_0)
+        #     pair_1 = torch.index_select(embeddings, 0, index_1)
+        #     pairs = torch.cat((pair_0, pair_1), dim=1)
+        #     logits = model.fc(pairs)
+        #     _, pred = torch.max(logits, 1)
+        #     targets = make_similarities(A_categories[0].cuda())
+        #     main_meter.update(logits, targets)
+        #     cls_loss = criterion(logits, targets)
+        #     cls_loss_avg.update(cls_loss.mean().item())
+        #     if batch_i != 0:
+        #         cross_entropy_loss += cls_loss
+        #         predictions = torch.cat((predictions, pred), dim=0)
+        #         labels = torch.cat((labels, targets))
         #     else:
-        #         logits = out
-        # nll_loss = F.log_softmax(logits, dim=1)
-        # cross_entropy_loss = F.nll_loss(nll_loss, labels)
-        # _, predictions = torch.max(nll_loss.data, 1)
+        #         cross_entropy_loss = cls_loss
+        #         predictions = pred
+        #         labels = targets
+        # print(main_meter.report())
+
+        logits = None
+        for i, (pair_index_0, pair_index_1) in enumerate(pair_data_loader):
+            pair_embedding_0 = torch.index_select(embeddings, 0, pair_index_0)
+            pair_embedding_1 = torch.index_select(embeddings, 0, pair_index_1)
+            pairs = torch.cat((pair_embedding_0, pair_embedding_1), dim=1)
+            out = model.fc(pairs)
+            if logits != None:
+                logits = torch.cat((logits, out), dim=0)
+            else:
+                logits = out
+        nll_loss = F.log_softmax(logits, dim=1)
+        cross_entropy_loss = F.nll_loss(nll_loss, labels)
+        _, predictions = torch.max(nll_loss.data, 1)
+
         info_nce_loss = loss_function(q, k, v)
-        loss = config.gamma1*info_nce_loss + cross_entropy_loss/(batch_i+1)
+        # loss = config.gamma1*info_nce_loss + cross_entropy_loss/(batch_i+1)
+        loss = config.gamma1*info_nce_loss + cross_entropy_loss
         labels, predictions = labels.cpu().detach(), predictions.cpu().detach()
         acc = metrics.accuracy_score(labels, predictions)
     loss.backward()
@@ -149,52 +152,54 @@ def test(test_mask):
         _, embeddings = model(test_dataset)
         q, k, v, pair_data_loader, labels = get_qkv_dataset(embeddings, test_dataset.pos_edge_index_0, test_dataset.pos_edge_index_1, test_dataset.neg_edge_index_0, test_dataset.neg_edge_index_1, 1)
 
-        meter = MetrixMeter(['Dissimilarity', 'Similarity'], default_metric='f1score')
-        pair_data_loader = base_similarity_test_loader
-        cross_entropy_loss = None
-        predictions = None
-        labels = None
-        for batch_i, A_data in tqdm(enumerate(pair_data_loader)):
-            A_images, A_categories, A_names = A_data
-            image_index = list(map(lambda x: name2index_test[x], A_names))
-            image_index = torch.tensor(image_index).view(-1, 1)
-            index_0 = image_index.repeat(image_index.size(0), 1)
-            index_1 = image_index.repeat(1, image_index.size(0)).view(-1, image_index.size(1))
-            index_0 = index_0.view(-1).cuda()
-            index_1 = index_1.view(-1).cuda()
-            pair_0 = torch.index_select(embeddings, 0, index_0)
-            pair_1 = torch.index_select(embeddings, 0, index_1)
-            pairs = torch.cat((pair_0, pair_1), dim=1)
-            logits = model.fc(pairs)
-            _, pred = torch.max(logits, 1)
-            targets = make_similarities(A_categories.cuda())
-            meter.update(logits, targets)
-            cls_loss = criterion(logits, targets)
-            if batch_i != 0:
-                cross_entropy_loss += cls_loss
-                predictions = torch.cat((predictions, pred), dim=0)
-                labels = torch.cat((labels, targets))
-            else:
-                cross_entropy_loss = cls_loss
-                predictions = pred
-                labels = targets
-        print(meter.report())
-
-        # logits = None
-        # for i, (pair_index_0, pair_index_1) in enumerate(pair_data_loader):
-        #     pair_embedding_0 = torch.index_select(embeddings, 0, pair_index_0)
-        #     pair_embedding_1 = torch.index_select(embeddings, 0, pair_index_1)
-        #     pairs = torch.cat((pair_embedding_0, pair_embedding_1), dim=1)
-        #     out = model.fc(pairs)
-        #     if logits != None:
-        #         logits = torch.cat((logits, out), dim=0)
+        # meter = MetrixMeter(['Dissimilarity', 'Similarity'], default_metric='f1score')
+        # pair_data_loader = base_similarity_test_loader
+        # cross_entropy_loss = None
+        # predictions = None
+        # labels = None
+        # for batch_i, A_data in tqdm(enumerate(pair_data_loader)):
+        #     A_images, A_categories, A_names = A_data
+        #     image_index = list(map(lambda x: name2index_test[x], A_names))
+        #     image_index = torch.tensor(image_index).view(-1, 1)
+        #     index_0 = image_index.repeat(image_index.size(0), 1)
+        #     index_1 = image_index.repeat(1, image_index.size(0)).view(-1, image_index.size(1))
+        #     index_0 = index_0.view(-1).cuda()
+        #     index_1 = index_1.view(-1).cuda()
+        #     pair_0 = torch.index_select(embeddings, 0, index_0)
+        #     pair_1 = torch.index_select(embeddings, 0, index_1)
+        #     pairs = torch.cat((pair_0, pair_1), dim=1)
+        #     logits = model.fc(pairs)
+        #     _, pred = torch.max(logits, 1)
+        #     targets = make_similarities(A_categories.cuda())
+        #     meter.update(logits, targets)
+        #     cls_loss = criterion(logits, targets)
+        #     if batch_i != 0:
+        #         cross_entropy_loss += cls_loss
+        #         predictions = torch.cat((predictions, pred), dim=0)
+        #         labels = torch.cat((labels, targets))
         #     else:
-        #         logits = out
-        # nll_loss = F.log_softmax(logits, dim=1)
-        # cross_entropy_loss = F.nll_loss(nll_loss, labels)
-        # _, predictions = torch.max(nll_loss.data, 1)
+        #         cross_entropy_loss = cls_loss
+        #         predictions = pred
+        #         labels = targets
+        # print(meter.report())
+
+        logits = None
+        for i, (pair_index_0, pair_index_1) in enumerate(pair_data_loader):
+            pair_embedding_0 = torch.index_select(embeddings, 0, pair_index_0)
+            pair_embedding_1 = torch.index_select(embeddings, 0, pair_index_1)
+            pairs = torch.cat((pair_embedding_0, pair_embedding_1), dim=1)
+            out = model.fc(pairs)
+            if logits != None:
+                logits = torch.cat((logits, out), dim=0)
+            else:
+                logits = out
+        nll_loss = F.log_softmax(logits, dim=1)
+        cross_entropy_loss = F.nll_loss(nll_loss, labels)
+        _, predictions = torch.max(nll_loss.data, 1)
+
         info_nce_loss = loss_function(q, k, v)
-        loss = config.gamma1*info_nce_loss + cross_entropy_loss/(batch_i+1)
+        # loss = config.gamma1*info_nce_loss + cross_entropy_loss/(batch_i+1)
+        loss = config.gamma1*info_nce_loss + cross_entropy_loss
         labels, predictions = labels.cpu().detach(), predictions.cpu().detach()
         acc = metrics.accuracy_score(labels, predictions)
         precision = metrics.precision_score(labels, predictions)
@@ -212,24 +217,24 @@ if __name__ == '__main__':
     wait_total = config.patience
     pipelines = [config.method]
     # d_names=['Cora','Citeseer','PubMed']
-    d_names = config.d_names
-    train_dataset, test_dataset = get_GCN_data("CUB")
+    dataset_str = config.d_names
+    train_dataset, test_dataset = get_GCN_data(dataset_str)
     print("loading data, done.")
 
-    args = get_arg()
-    data_helper = get_data_helper(args)
-    base_test_loader = data_helper.get_base_test_loader()
-    A_loader = data_helper.get_clean_base_loader()
-    B_loader = data_helper.get_noisy_novel_loader()
-    A_pairs_data_loader = get_train_loader_(args, A_loader, B_loader, args.batch_class_num)
-    base_similarity_test_loader = get_similarity_test_loader2(args, base_test_loader)
-    criterion = nn.CrossEntropyLoss().cuda()
-    name2index_train = {}
-    for index, image_name in enumerate(A_loader.dataset.image_list):
-        name2index_train[image_name[0]] = index
-    name2index_test = {}
-    for index, image_name in enumerate(base_similarity_test_loader.dataset.image_list):
-        name2index_test[image_name[0]] = index
+    # args = get_arg()
+    # data_helper = get_data_helper(args)
+    # base_test_loader = data_helper.get_base_test_loader()
+    # A_loader = data_helper.get_clean_base_loader()
+    # B_loader = data_helper.get_noisy_novel_loader()
+    # A_pairs_data_loader = get_train_loader_(args, A_loader, B_loader, args.batch_class_num)
+    # base_similarity_test_loader = get_similarity_test_loader2(args, base_test_loader)
+    # criterion = nn.CrossEntropyLoss().cuda()
+    # name2index_train = {}
+    # for index, image_name in enumerate(A_loader.dataset.image_list):
+    #     name2index_train[image_name[0]] = index
+    # name2index_test = {}
+    # for index, image_name in enumerate(base_similarity_test_loader.dataset.image_list):
+    #     name2index_test[image_name[0]] = index
 
     for time in times:
         train_mask = train_dataset.train_mask.bool()
@@ -248,8 +253,9 @@ if __name__ == '__main__':
                 best_val_auc = test_auc
                 wait_step = 0
                 if best_val_auc > 0.6:
-                    torch.save(model, f"saves/model/curvGN_1218_{best_val_auc:.4f}.pth")
-                    print(f"save name: curvGN_1218_{best_val_auc:.4f}.pth")
+                    current_time = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
+                    torch.save(model, f"saves/model/curvGN_{dataset_str}_{current_time}_{best_val_auc:.4f}.pth")
+                    print(f"save name: curvGN_{dataset_str}_{current_time}_{best_val_auc:.4f}.pth")
             else:
                 wait_step += 1
                 if wait_step == wait_total:
