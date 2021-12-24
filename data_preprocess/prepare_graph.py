@@ -76,10 +76,8 @@ def main():
     log(data_helper)
 
     # base_train_loader = data_helper.get_clean_base_loader()   # base training set共计150类 每类30张图片
-    # novel_train_loader = data_helper.get_noisy_novel_loader()  # novel web images 共计50类 每类1000张图片
     #
     # base_test_loader = data_helper.get_base_test_loader()     # base test set 150类 4326张图片
-    # novel_test_loader = data_helper.get_novel_test_loader()   # novel test set 50类 1468张图片
     #
     simnet = GANSimilarityNet(args).cuda()
     # dir_name = f"../image_embeddings/{dataset_str}/ori_pretrained"
@@ -105,14 +103,6 @@ def main():
         web_image = image.to("cpu")
         make_graph_file(f"{dataset_str}/novel/{category_name}", web_image)
 
-
-    # base_train_image, base_test_image, novel_train_image, novel_test_image, \
-    # base_train_label, base_test_label, novel_train_label, novel_test_label = get_dataset("image_embeddings/CUB/")
-
-    # novel_train_image = novel_train_image.to("cpu")
-    # make_graph_file(f"{dataset_str}/novel_train_graph_mean", novel_train_image)
-    # novel_test_image = novel_test_image.to("cpu")
-    # make_graph_file(f"{dataset_str}/novel_test_graph_mean", novel_test_image)
 
 
 if __name__ == '__main__':

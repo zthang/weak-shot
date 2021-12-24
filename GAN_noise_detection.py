@@ -1,6 +1,6 @@
 import sys
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='2,3'
+os.environ['CUDA_VISIBLE_DEVICES']='1,3'
 sys.path.append(".")
 
 import datetime
@@ -35,8 +35,8 @@ def main():
     parser = add_detection(parser)
     args = parser.parse_args()
 
-    args.data_path = "workspace/dataset/CUB"
-    args.save_dir = "weight/CUB"
+    args.data_path = "workspace/dataset/Air"
+    args.save_dir = "weight/Air"
     args.similarity_net = "saves/GANSimilarity__tnovel_train_beta0.0_clean_base2noisy_novel_CUB_lr0.005_b50_h4_bnA20_bnB2_sw0_nf0_10281646/simnet_GANSimilarity__tnovel_train_beta0.0_clean_base2noisy_novel_CUB_lr0.005_b50_h4_bnA20_bnB2_sw0_nf0_10281646_best.pth"
 
     args.exp_name += f'NoiseDetection_{os.path.basename(args.data_path)}' \

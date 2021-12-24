@@ -19,12 +19,12 @@ def minmaxscaler(x):
 class Net(torch.nn.Module):
     def __init__(self, num_features, num_classes):
         super(Net, self).__init__()
-        self.conv1 = curvGN(in_channels=num_features, out_channels=128)
-        self.conv2 = curvGN(in_channels=128, out_channels=num_classes)
+        self.conv1 = curvGN(in_channels=num_features, out_channels=64)
+        self.conv2 = curvGN(in_channels=64, out_channels=num_classes)
         # self.conv1 = GATConv(num_features, 64, heads=8, dropout=0.5)
         # self.conv2 = GATConv(64 * 8, num_classes, heads=1, concat=False, dropout=0.5)
-        # self.conv1 = GCNConv(num_features, 256)
-        # self.conv2 = GCNConv(256, num_classes)
+        # self.conv1 = GCNConv(num_features, 128)
+        # self.conv2 = GCNConv(128, num_classes)
         self.fc = Linear(2*(num_classes), 2)
     def forward(self, data):
         # x = torch.cat((data.x, data.node_curvature), dim=1)
@@ -47,7 +47,7 @@ def num(strings):
     except ValueError:
         return float(strings)
 
-def call(train_dataset, test_dataset, name, num_features, num_classes, config, hidden_state=128):
+def call(train_dataset, test_dataset, name, num_features, num_classes, config, hidden_state=64):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     edge_curvature_train = train_dataset.edge_curvature

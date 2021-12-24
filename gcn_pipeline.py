@@ -1,6 +1,6 @@
 import os.path as osp
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 import numpy
 import torch
 import torch.nn.functional as F
@@ -23,19 +23,24 @@ from evaluate_ori import get_arg
 from ad_similarity.ad_modules import *
 from utils.meters import MetrixMeter, AverageMeter
 from tqdm import tqdm
+import time
 
+# cat logs/log1224_curvgn_c0
+# cat logs/log1224_gcn_c0.1
+# log1224_retri_emb_2
 
 τ = 0.5
 class PairData(Dataset):
-    def __init__(self, pair_index_0, pair_index_1):
+    def __init__(self, pair_index_0, pair_index_1, y):
         self.pair_index_0 = pair_index_0
         self.pair_index_1 = pair_index_1
+        self.y = y
 
     def __len__(self):
         return len(self.pair_index_0)
 
     def __getitem__(self, index):
-        return [self.pair_index_0[index], self.pair_index_1[index]]
+        return [self.pair_index_0[index], self.pair_index_1[index], self.y[index]]
 
 def get_qkv_dataset(embeddings, pos_edge_index_0, pos_edge_index_1, neg_edge_index_0, neg_edge_index_1, mode=0):
     embeddings = F.normalize(embeddings, dim=-1)
@@ -58,8 +63,8 @@ def get_qkv_dataset(embeddings, pos_edge_index_0, pos_edge_index_1, neg_edge_ind
         pair_index_0 = pair_index_0[index]
         pair_index_1 = pair_index_1[index]
 
-    loader = DataLoader(PairData(pair_index_0, pair_index_1), batch_size=10000, shuffle=(mode == 0), num_workers=0)
-    return q, k, v, loader, torch.as_tensor(labels).cuda()
+    loader = DataLoader(PairData(pair_index_0, pair_index_1, torch.as_tensor(labels).cuda()), batch_size=10000, shuffle=(mode == 0), num_workers=0)
+    return q, k, v, loader
 
 
 def loss_function(q, k, v, gamma=1e-10):
@@ -86,7 +91,7 @@ def train(train_mask):
     else:
         _, embeddings = model(train_dataset)
         # cross_entropy_loss = F.nll_loss(nll_loss[train_mask], data.y[train_mask])
-        q, k, v, pair_data_loader, labels = get_qkv_dataset(embeddings, train_dataset.pos_edge_index_0, train_dataset.pos_edge_index_1, train_dataset.neg_edge_index_0, train_dataset.neg_edge_index_1, 0)
+        q, k, v, pair_data_loader = get_qkv_dataset(embeddings, train_dataset.pos_edge_index_0, train_dataset.pos_edge_index_1, train_dataset.neg_edge_index_0, train_dataset.neg_edge_index_1, 0)
 
         # main_meter = MetrixMeter(['Dissimilarity', 'Similarity'], default_metric='f1score')
         # cls_loss_avg = AverageMeter('Training cls loss')
@@ -121,21 +126,23 @@ def train(train_mask):
         #         labels = targets
         # print(main_meter.report())
 
-        logits = None
-        for i, (pair_index_0, pair_index_1) in enumerate(pair_data_loader):
+        logits = []
+        labels = []
+        for i, (pair_index_0, pair_index_1, y) in enumerate(pair_data_loader):
             pair_embedding_0 = torch.index_select(embeddings, 0, pair_index_0)
             pair_embedding_1 = torch.index_select(embeddings, 0, pair_index_1)
             pairs = torch.cat((pair_embedding_0, pair_embedding_1), dim=1)
             out = model.fc(pairs)
-            if logits != None:
-                logits = torch.cat((logits, out), dim=0)
-            else:
-                logits = out
+            logits.append(out)
+            labels.append(y)
+        logits = torch.cat(logits)
+        labels = torch.cat(labels)
         nll_loss = F.log_softmax(logits, dim=1)
         cross_entropy_loss = F.nll_loss(nll_loss, labels)
         _, predictions = torch.max(nll_loss.data, 1)
 
-        info_nce_loss = loss_function(q, k, v)
+        # info_nce_loss = loss_function(q, k, v)
+        info_nce_loss = 0
         # loss = config.gamma1*info_nce_loss + cross_entropy_loss/(batch_i+1)
         loss = config.gamma1*info_nce_loss + cross_entropy_loss
         labels, predictions = labels.cpu().detach(), predictions.cpu().detach()
@@ -150,7 +157,7 @@ def test(test_mask):
         logits, Reg1, Reg2 = model(data)
     else:
         _, embeddings = model(test_dataset)
-        q, k, v, pair_data_loader, labels = get_qkv_dataset(embeddings, test_dataset.pos_edge_index_0, test_dataset.pos_edge_index_1, test_dataset.neg_edge_index_0, test_dataset.neg_edge_index_1, 1)
+        q, k, v, pair_data_loader = get_qkv_dataset(embeddings, test_dataset.pos_edge_index_0, test_dataset.pos_edge_index_1, test_dataset.neg_edge_index_0, test_dataset.neg_edge_index_1, 1)
 
         # meter = MetrixMeter(['Dissimilarity', 'Similarity'], default_metric='f1score')
         # pair_data_loader = base_similarity_test_loader
@@ -183,21 +190,23 @@ def test(test_mask):
         #         labels = targets
         # print(meter.report())
 
-        logits = None
-        for i, (pair_index_0, pair_index_1) in enumerate(pair_data_loader):
+        logits = []
+        labels = []
+        for i, (pair_index_0, pair_index_1, y) in enumerate(pair_data_loader):
             pair_embedding_0 = torch.index_select(embeddings, 0, pair_index_0)
             pair_embedding_1 = torch.index_select(embeddings, 0, pair_index_1)
             pairs = torch.cat((pair_embedding_0, pair_embedding_1), dim=1)
             out = model.fc(pairs)
-            if logits != None:
-                logits = torch.cat((logits, out), dim=0)
-            else:
-                logits = out
+            logits.append(out)
+            labels.append(y)
+        logits = torch.cat(logits)
+        labels = torch.cat(labels)
         nll_loss = F.log_softmax(logits, dim=1)
         cross_entropy_loss = F.nll_loss(nll_loss, labels)
         _, predictions = torch.max(nll_loss.data, 1)
 
-        info_nce_loss = loss_function(q, k, v)
+        # info_nce_loss = loss_function(q, k, v)
+        info_nce_loss = 0
         # loss = config.gamma1*info_nce_loss + cross_entropy_loss/(batch_i+1)
         loss = config.gamma1*info_nce_loss + cross_entropy_loss
         labels, predictions = labels.cpu().detach(), predictions.cpu().detach()
@@ -236,12 +245,13 @@ if __name__ == '__main__':
     # for index, image_name in enumerate(base_similarity_test_loader.dataset.image_list):
     #     name2index_test[image_name[0]] = index
 
-    for time in times:
+    for time_step in times:
         train_mask = train_dataset.train_mask.bool()
         # val_mask=data.val_mask.bool()
         test_mask = test_dataset.test_mask.bool()
         model, train_dataset, test_dataset = ConvCurv.call(train_dataset, test_dataset, config.d_names, train_dataset.x.size(1), train_dataset.num_classes, config)
         optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate, weight_decay=0.0005)
+        # optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=0.0005)
         best_val_loss = np.inf
         best_val_auc = -1
         save_embedding = None
@@ -252,7 +262,7 @@ if __name__ == '__main__':
             if test_auc >= best_val_auc:
                 best_val_auc = test_auc
                 wait_step = 0
-                if best_val_auc > 0.6:
+                if best_val_auc > 0.1:
                     current_time = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
                     torch.save(model, f"saves/model/curvGN_{dataset_str}_{current_time}_{best_val_auc:.4f}.pth")
                     print(f"save name: curvGN_{dataset_str}_{current_time}_{best_val_auc:.4f}.pth")

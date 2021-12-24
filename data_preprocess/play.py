@@ -17,20 +17,24 @@ for line in lines:
     edge_list.append([int(data[0]), int(data[1]), float(data[2])])
 print("begin sorting...")
 edge_list = sorted(edge_list, key=lambda x: x[2], reverse=True)
-ground_truth = []
-print("make label...")
-for edge in edge_list:
-    if base_train_label[edge[0]] != base_train_label[edge[1]]:
-        ground_truth.append(0)
-    else:
-        ground_truth.append(1)
-num = len(ground_truth)
+# ground_truth = []
+# print("make label...")
+# for edge in edge_list:
+#     if base_train_label[edge[0]] != base_train_label[edge[1]]:
+#         ground_truth.append(0)
+#     else:
+#         ground_truth.append(1)
+num = len(edge_list)
 accs = []
-for i in tqdm(range(0, num, 1000)):
-    pos = np.ones(i)
-    neg = np.zeros(num-i)
-    pred = np.concatenate((pos, neg), axis=0)
-    acc = metrics.accuracy_score(ground_truth, pred)
-    accs.append(acc)
-pickle.dump(accs, open("saves/cos_distribute.pkl", "wb"))
+# for i in tqdm(range(0, num, 1000)):
+#     pos = np.ones(i)
+#     neg = np.zeros(num-i)
+#     pred = np.concatenate((pos, neg), axis=0)
+#     acc = metrics.accuracy_score(ground_truth, pred)
+#     accs.append(acc)
+# pickle.dump(accs, open("saves/cos_distribute.pkl", "wb"))
+accs = pickle.load(open("saves/cos_distribute.pkl", "rb"))
+idx = accs.index(max(accs))
+print(accs[idx*1000])
+
 print(1)

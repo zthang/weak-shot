@@ -75,6 +75,7 @@ class PairData(Dataset):
         return [self.index_0[index], self.index_1[index], self.y[index]]
 
 
+# 作者的simnet跑我们的数据
 def test_1():
     #torch1.0.0
 
@@ -149,6 +150,7 @@ def test_1():
     auc = metrics.roc_auc_score(labels, pred)
     print(f"acc: {acc:.4f}, precision: {precision:.4f}, recall: {recall:.4f}, f1: {f1:.4f}, auc: {auc:.4f}")
 
+# 我们跑作者的数据
 def test_2():
     from CurvGN_module import ConvCurv
     from data_preprocess.prepare_GCN_data import get_GCN_data
@@ -183,6 +185,7 @@ def test_2():
         meter.update(logits, targets)
     print(meter.report())
 
+# 验证自己的模型
 def test_3():
     from data_preprocess.prepare_GCN_data import get_GCN_data
     from gcn_pipeline import get_qkv_dataset
@@ -216,25 +219,49 @@ def test_3():
     auc = metrics.roc_auc_score(labels, predictions)
     print(acc, precision, recall, f1, auc)
 
-def test_4():
-    model = torch.load("saves/main_EF1_one_mean_savg1_WCUB_CUB_lr0.0005_b8_20_0.5_12220124/main_EF1_one_mean_savg1_WCUB_CUB_lr0.0005_b8_20_0.5_12220124_best.pth")
+# 0.1 0.9
+def test_4(dataset_str):
+    if dataset_str == "CUB":
+        model = torch.load("saves/main_EF1_one_mean_savg1_WCUB_CUB_lr0.0005_b8_20_0.5_12220124/main_EF1_one_mean_savg1_WCUB_CUB_lr0.0005_b8_20_0.5_12220124_best.pth")
+        retrieve_dict = "weight/CUB/retrieve_noisy_dict_50_sum.pth"
+    elif dataset_str == "Car":
+        model = torch.load("saves/main_EF1_one_mean_savg1_WCar_Car_lr0.0002_b8_20_0.5_12241043/main_EF1_one_mean_savg1_WCar_Car_lr0.0002_b8_20_0.5_12241043_best.pth")
+        retrieve_dict = "weight/Car/retrieve_noisy_dict_10_sum.pth"
+    elif dataset_str == "Air":
+        model = torch.load("saves/main_EF1_one_mean_savg1_WAir_Air_lr0.0001_b8_20_0.5_12241031/main_EF1_one_mean_savg1_WAir_Air_lr0.0001_b8_20_0.5_12241031_best.pth")
+        retrieve_dict = "weight/Air/retrieve_noisy_dict_50_sum.pth"
     prefix = '/home/zthang/zthang/SimTrans-Weak-Shot-Classification'
     args = get_arg()
+    args.data_path = f"workspace/dataset/{dataset_str}"
     data_helper = get_data_helper(args)
     test_loader = data_helper.get_novel_test_loader()
     meter = MetrixMeter(test_loader.dataset.categories)
-    retrieve_dict = torch.load("weight/CUB/retrieve_noisy_dict_50_sum.pth")
+    retrieve_dict = torch.load(retrieve_dict)
+    pred = []
+    label = []
+    distri = []
     with torch.no_grad():
         for batch_i, (images, categories, im_names) in tqdm(enumerate(test_loader)):
             retrieve_distribution = []
             for name in im_names:
-                retrieve_distribution.append(retrieve_dict[f"{name}"])
+                retrieve_distribution.append(retrieve_dict[f"{prefix}/{name}"])
             distribution = torch.stack(retrieve_distribution).cuda()
             predictions = model(images.cuda())
             predictions = torch.nn.functional.softmax(predictions, dim=1)
-            predictions = predictions + 0.8*distribution
-            meter.update(predictions, categories)
-
+            pred.append(predictions)
+            label.append(categories)
+            distri.append(distribution)
+    predictions = torch.cat(pred)
+    categories = torch.cat(label)
+    distribution = torch.cat(distri)
+    for i in range(0,200):
+        meter = MetrixMeter(test_loader.dataset.categories)
+        pred = predictions + i/100*distribution
+        meter.update(pred, categories)
+        print(f"{i}, {meter}")
     return meter
 if __name__ == '__main__':
-    print(test_4())
+    # print(test_4("CUB"))
+    print(test_4("Car"))
+    print(test_4("Air"))
+    # test_3()

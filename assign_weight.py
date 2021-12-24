@@ -72,16 +72,164 @@ cub_novel_category = ['043.Yellow_bellied_Flycatcher',
                   '004.Groove_billed_Ani',
                   '132.White_crowned_Sparrow',
                   '168.Kentucky_Warbler']
+air_novel_category = ['F/A-18',
+                      'Eurofighter Typhoon',
+                      'DHC-6',
+                      'C-130',
+                      'SR-20',
+                      'Gulfstream V',
+                      'DHC-1',
+                      'CRJ-900',
+                      '757-300',
+                      'Fokker 70',
+                      'PA-28',
+                      'Saab 2000',
+                      'Tu-154',
+                      'Spitfire',
+                      'Model B200',
+                      'Saab 340',
+                      'An-12',
+                      'Cessna 208',
+                      'A321',
+                      'DR-400',
+                      'Cessna 525',
+                      'ATR-72',
+                      'Gulfstream IV',
+                      '737-200',
+                      'Cessna 172']
+car_novel_category = ['ASX abroad version',
+                      'Alto',
+                      'Audi A1',
+                      'Audi A4L',
+                      'Audi A6L',
+                      'Audi Q5',
+                      'Audi TT coupe',
+                      'Aveo sedan',
+                      'BWM 1 Series hatchback',
+                      'BWM 3 Series convertible',
+                      'BWM 5 Series',
+                      'BWM M5',
+                      'BWM X5',
+                      'BYD F6',
+                      'BYD S6',
+                      'Bei Douxing',
+                      'Benz A Class',
+                      'Benz E Class',
+                      'Benz GL Class',
+                      'Benz SLK Class',
+                      'Besturn X80',
+                      'Brabus S Class',
+                      'Cadillac ATS-L',
+                      'Camaro',
+                      'Captiva',
+                      'Chrey A3 hatchback',
+                      'Chrey QQ3',
+                      'Citroen C2',
+                      'Classic Focus hatchback',
+                      'Compass',
+                      'Cross Lavida',
+                      'Cruze hatchback',
+                      'DS 4',
+                      'Discovery',
+                      'Eastar Cross',
+                      'Enclave',
+                      'Evoque',
+                      'Family M5',
+                      'Fengshen H30',
+                      'Focus ST',
+                      'GTC hatchback',
+                      'Geely EC8',
+                      'Golf convertible',
+                      'Grandtiger G3',
+                      'Great Wall M4',
+                      'Haima S7',
+                      'Haydo',
+                      'Huaguan',
+                      'Infiniti Q50',
+                      'Infiniti QX80',
+                      'Jingyue',
+                      'KIA K5',
+                      'Koleos',
+                      'Landwind X8',
+                      'Lechi',
+                      'Lexus GS',
+                      'Lexus IS convertible',
+                      'Lifan 320',
+                      'Linian S1',
+                      'MAXUS V80xs',
+                      'MG6 hatchback',
+                      'MINI CLUBMAN',
+                      'Magotan',
+                      'Mazda 2 sedan',
+                      'Mazda 3 abroad version',
+                      'Mazda CX7',
+                      'Mitsubishi Lancer EX',
+                      'New Focus hatchback',
+                      'Nissan NV200',
+                      'Panamera',
+                      'Peugeot 2008',
+                      'Peugeot 3008',
+                      'Peugeot 308',
+                      'Peugeot 408',
+                      'Polo hatchback',
+                      'Premacy',
+                      'Qiteng M70',
+                      'Quatre sedan',
+                      'Regal',
+                      'Roewe 350',
+                      'Ruifeng M5',
+                      'Ruiyi',
+                      'SAAB D70',
+                      'Sail sedan',
+                      'Scirocco',
+                      'Shuma',
+                      'Soul',
+                      'Sunshine',
+                      'Teana',
+                      'Tiggo',
+                      'Tiida',
+                      'Toyota 86',
+                      'Veloster',
+                      'Verna',
+                      'Volvo C30',
+                      'Volvo S60L',
+                      'Volvo V60',
+                      'Weizhi',
+                      'Wingle 5',
+                      'Wulingzhiguang',
+                      'Yaris',
+                      'Youyou',
+                      'Yuexiang sedan',
+                      'Zhixiang',
+                      'Zhonghua H530',
+                      'Zhonghua Junjie FSV',
+                      'Ziyoujian',
+                      'i30']
 
-def calcu_cub_weight():
-    model = torch.load("saves/model/curvGN_1218_0.6246.pth")
+def calcu_weight(dataset_str):
+    if dataset_str == "CUB":
+        model = torch.load("saves/model/curvGN_1218_0.6246.pth")
+        novel_category = cub_novel_category
+    elif dataset_str == "Car":
+        model = torch.load("saves/model/curvGN_Car_2021-12-23-19:37:15_0.5079.pth")
+        novel_category = car_novel_category
+    elif dataset_str == "Air":
+        model = torch.load("saves/model/curvGN_Air_2021-12-24-11:09:55_0.6257.pth")
+        novel_category = air_novel_category
     print("loading model, done.")
-    for idx, category in enumerate(cub_novel_category):
+    for idx, category in enumerate(novel_category):
         print(category)
-        data = get_GCN_novel_data("CUB", category)
+        data = get_GCN_novel_data(dataset_str, category)
         print("loading data, done.")
-        begin_index = idx*30
-        end_index = idx*30+1000
+        end_index = len(data.y)
+        for category_index, category_value in enumerate(data.y):
+            if category_value == idx:
+                begin_index = category_index
+                break
+        for category_index, category_value in enumerate(data.y):
+            if category_value == idx+1:
+                end_index = category_index
+                break
         if data.y[begin_index] != idx or data.y[end_index-1] != idx:
             raise ValueError
         edge_index_0 = []
@@ -116,7 +264,7 @@ def calcu_cub_weight():
         nll_loss = F.log_softmax(logits, dim=1)
         pred = torch.exp(nll_loss)
         node_index = pair_data_set.index_0 - begin_index
-        node_weight = scatter(pred[:, 1], node_index, dim=0, reduce="mean", dim_size=1000)+0.1
+        node_weight = scatter(pred[:, 1], node_index, dim=0, reduce="mean", dim_size=end_index-begin_index)+0.3
         node_weight /= node_weight.mean()
-        torch.save(node_weight, f"weight/CUB/{category}_weight_new.pth")
-calcu_cub_weight()
+        torch.save(node_weight, f"weight/{dataset_str}/{category}_weight_0.6.pth")
+calcu_weight("CUB")

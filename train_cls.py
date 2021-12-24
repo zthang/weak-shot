@@ -2,7 +2,7 @@ import sys
 import warnings
 import os
 import time
-os.environ['CUDA_VISIBLE_DEVICES']='0,3'
+os.environ['CUDA_VISIBLE_DEVICES']='1,3'
 sys.path.append(".")
 warnings.filterwarnings("ignore")
 
@@ -42,11 +42,12 @@ def main():
     parser = add_pretrain(parser)
     args = parser.parse_args()
 
-    args.lr = 5e-3
-    args.batch_size = 128
-    args.num_epoch = 60
-    args.data_path = "workspace/dataset/CUB"
-    args.load_dir = "weight/CUB"
+    dataset_str = "CUB"
+    args.lr = 1e-4
+    args.batch_size = 8
+    args.num_epoch = 100
+    args.data_path = f"workspace/dataset/{dataset_str}"
+    args.load_dir = f"weight/{dataset_str}"
 
     args.exp_name += f'main_EF{args.epoch_fraction}_{args.weight_norm}_{args.weight_type}_W{os.path.basename(args.load_dir)}_{os.path.basename(args.data_path)}' \
                      f'_lr{args.lr}_b{args.batch_size}_{args.lr_interval}_{args.lr_decay}_' \
@@ -178,7 +179,7 @@ def get_weight_dict(args, dataset, dataname):
         # similarity_matrix = torch.load(f'{path}_matrix.pth')
         names = saved_names
 
-        weights = torch.load(f"{path}_weight.pth")
+        weights = torch.load(f"{path}_weight_0.6.pth")
         weights = weights.detach()
 
         # names = [(dataset.root_path + '/Dog_web' + n.split('Dog_web')[1]).replace('\\', os.sep).replace('/', os.sep) for
