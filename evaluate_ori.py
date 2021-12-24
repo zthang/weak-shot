@@ -219,17 +219,19 @@ def test_3():
     auc = metrics.roc_auc_score(labels, predictions)
     print(acc, precision, recall, f1, auc)
 
-# 0.1 0.9
 def test_4(dataset_str):
     if dataset_str == "CUB":
         model = torch.load("saves/main_EF1_one_mean_savg1_WCUB_CUB_lr0.0005_b8_20_0.5_12220124/main_EF1_one_mean_savg1_WCUB_CUB_lr0.0005_b8_20_0.5_12220124_best.pth")
         retrieve_dict = "weight/CUB/retrieve_noisy_dict_50_sum.pth"
+        lammbda = 1.5
     elif dataset_str == "Car":
         model = torch.load("saves/main_EF1_one_mean_savg1_WCar_Car_lr0.0002_b8_20_0.5_12241043/main_EF1_one_mean_savg1_WCar_Car_lr0.0002_b8_20_0.5_12241043_best.pth")
         retrieve_dict = "weight/Car/retrieve_noisy_dict_10_sum.pth"
+        lammbda = 0.9
     elif dataset_str == "Air":
         model = torch.load("saves/main_EF1_one_mean_savg1_WAir_Air_lr0.0001_b8_20_0.5_12241031/main_EF1_one_mean_savg1_WAir_Air_lr0.0001_b8_20_0.5_12241031_best.pth")
         retrieve_dict = "weight/Air/retrieve_noisy_dict_50_sum.pth"
+        lammbda = 0.1
     prefix = '/home/zthang/zthang/SimTrans-Weak-Shot-Classification'
     args = get_arg()
     args.data_path = f"workspace/dataset/{dataset_str}"
@@ -254,14 +256,16 @@ def test_4(dataset_str):
     predictions = torch.cat(pred)
     categories = torch.cat(label)
     distribution = torch.cat(distri)
-    for i in range(0,200):
-        meter = MetrixMeter(test_loader.dataset.categories)
-        pred = predictions + i/100*distribution
-        meter.update(pred, categories)
-        print(f"{i}, {meter}")
-    return meter
+
+    meter_no_retrieve = MetrixMeter(test_loader.dataset.categories)
+    pred = predictions + 0*distribution
+    meter_no_retrieve.update(pred, categories)
+
+    meter_retrieve = MetrixMeter(test_loader.dataset.categories)
+    pred = predictions +lammbda*distribution
+    meter_retrieve.update(pred, categories)
+    print(f"{dataset_str} no retrieve: {meter_no_retrieve}, retrieve: {meter_retrieve}")
 if __name__ == '__main__':
-    # print(test_4("CUB"))
-    print(test_4("Car"))
-    print(test_4("Air"))
-    # test_3()
+    test_4("CUB")
+    test_4("Car")
+    test_4("Air")
